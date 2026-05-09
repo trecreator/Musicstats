@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { buscarPedidosPopulares } from '../actions';
 import Link from 'next/link';
 
