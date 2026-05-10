@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { pool } from '@/lib/db';
-import {
-  obterDadosVideos,
-} from '@/lib/youtube';
+
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{
@@ -113,12 +112,40 @@ export default async function VideoPage({
      STATS ATUAIS
   ========================================= */
 
-  const statsVideos =
-    await obterDadosVideos([
-      videoId,
-    ]);
+  const [statsRows]: any = await pool.query(
+  `
+  SELECT *
+  FROM musicas_historico
+  WHERE id_video = ?
+  ORDER BY capturado_em DESC
+  LIMIT 1
+  `,
+  [videoId]
+);
 
-  const stats = statsVideos[0];
+const stats = statsRows[0];
+
+const [previousRows]: any = await pool.query(
+  `
+  SELECT views
+  FROM musicas_historico
+  WHERE id_video = ?
+  ORDER BY capturado_em DESC
+  LIMIT 2
+  `,
+  [videoId]
+);
+
+let yesterdayViews = null;
+let deltaViews = null;
+
+if (previousRows.length >= 2) {
+  const today = Number(previousRows[0].views);
+  const yesterday = Number(previousRows[1].views);
+
+  yesterdayViews = yesterday;
+  deltaViews = today - yesterday;
+}
 
   if (!stats) {
     return (
@@ -392,6 +419,34 @@ export default async function VideoPage({
           <div className="space-y-6">
 
             {/* RESUMO */}
+
+            <div>
+  <span className="text-[#555] uppercase block mb-1">
+    Views Yesterday
+  </span>
+
+  <span className="text-white font-black text-lg font-mono">
+    {yesterdayViews?.toLocaleString('pt-BR') ?? 'N/A'}
+  </span>
+</div>
+
+<div>
+  <span className="text-[#555] uppercase block mb-1">
+    Change (24h)
+  </span>
+
+  <span
+    className={
+      (deltaViews ?? 0) >= 0
+        ? 'text-green-500 font-black text-lg font-mono'
+        : 'text-red-500 font-black text-lg font-mono'
+    }
+  >
+    {deltaViews !== null
+      ? (deltaViews > 0 ? '+' : '') + deltaViews.toLocaleString('pt-BR')
+      : 'N/A'}
+  </span>
+</div>
 
             <div className="bg-[#111] border border-[#222] p-5">
               <h2 className="text-white uppercase font-black text-sm mb-5">

@@ -10,40 +10,24 @@ import {
    UTIL
 ========================================================= */
 
-function calcularIdade(
-  dataISO: string | null
-) {
+function calcularIdade(dataISO: string | null) {
   if (!dataISO) {
-    return {
-      texto: 'Data N/A',
-      dias: 0,
-    };
+    return { texto: 'Data N/A', dias: 0 };
   }
 
   const pub = new Date(dataISO);
 
   if (isNaN(pub.getTime())) {
-    return {
-      texto: 'Data inválida',
-      dias: 0,
-    };
+    return { texto: 'Data inválida', dias: 0 };
   }
 
   const hoje = new Date();
-
-  const diff =
-    hoje.getTime() - pub.getTime();
-
-  const dias = Math.floor(
-    diff / (1000 * 60 * 60 * 24)
-  );
+  const diff = hoje.getTime() - pub.getTime();
+  const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
 
   if (dias >= 365) {
     return {
-      texto:
-        (dias / 365).toFixed(1) +
-        ' anos',
-
+      texto: (dias / 365).toFixed(1) + ' anos',
       dias,
     };
   }
@@ -54,136 +38,42 @@ function calcularIdade(
   };
 }
 
-/* =========================================================
-   CADASTRAR MÚSICA
-========================================================= */
+async function calcularTendencia(videoId: string) {
+  const [rows]: any = await pool.query(
+    `
+    SELECT views, capturado_em
+    FROM musicas_historico
+    WHERE id_video = ?
+    ORDER BY capturado_em DESC
+    LIMIT 2
+    `,
+    [videoId]
+  );
 
-export async function cadastrarMusica(
-  urlOuId: string
-) {
-  try {
-    const videoId =
-      extrairVideoId(urlOuId);
-
-    if (!videoId) {
-      return {
-        success: false,
-        error: 'URL inválida',
-      };
-    }
-
-    /*
-      Busca no YouTube
-    */
-    const dadosYoutube =
-      await obterDadosVideos([
-        videoId,
-      ]);
-
-    const video =
-      dadosYoutube[0];
-
-    if (!video) {
-      return {
-        success: false,
-        error:
-          'Vídeo não encontrado',
-      };
-    }
-
-    /*
-      Verifica se já existe
-    */
-    const [rows]: any =
-      await pool.query(
-        `
-        SELECT id_video
-        FROM pedidos_musicas
-        WHERE id_video = ?
-        `,
-        [videoId]
-      );
-
-    /*
-      Incrementa votos
-    */
-    if (rows.length > 0) {
-      await pool.query(
-        `
-        UPDATE pedidos_musicas
-        SET votos = votos + 1
-        WHERE id_video = ?
-        `,
-        [videoId]
-      );
-    } else {
-      /*
-        Cria novo pedido
-      */
-      await pool.query(
-        `
-        INSERT INTO pedidos_musicas
-        (
-          id_video,
-          titulo_sugerido,
-          votos
-        )
-        VALUES (?, ?, ?)
-        `,
-        [
-          videoId,
-          video.title,
-          1,
-        ]
-      );
-    }
-
+  if (!rows || rows.length < 2) {
     return {
-      success: true,
-    };
-  } catch (error: any) {
-    console.error(error);
-
-    return {
-      success: false,
-      error:
-        error?.message ||
-        'Erro desconhecido',
+      delta: 0,
+      percent: 0,
+      trend: 'stable' as const,
     };
   }
-}
 
-/* =========================================================
-   BUSCAR PEDIDOS
-========================================================= */
+  const atual = Number(rows[0].views);
+  const anterior = Number(rows[1].views);
 
-export async function buscarPedidosPopulares() {
-  try {
-    const [rows] =
-      await pool.query(
-        `
-        SELECT
-          id_video,
-          titulo_sugerido,
-          votos
-        FROM pedidos_musicas
-        WHERE votos >= 15
-        ORDER BY votos DESC
-        `
-      );
+  const delta = atual - anterior;
+  const percent = anterior > 0 ? (delta / anterior) * 100 : 0;
 
-    return {
-      success: true,
-      dados: rows,
-    };
-  } catch (error) {
-    console.error(error);
+  let trend: 'up' | 'down' | 'stable' = 'stable';
 
-    return {
-      success: false,
-      dados: [],
-    };
-  }
+  if (percent > 0.05) trend = 'up';
+  else if (percent < -0.05) trend = 'down';
+
+  return {
+    delta,
+    percent,
+    trend,
+  };
 }
 
 /* =========================================================
@@ -192,18 +82,14 @@ export async function buscarPedidosPopulares() {
 
 export async function buscarMusicasMonitoradas() {
   try {
-    /*
-      Busca dados locais
-    */
-    const [rows]: any =
-      await pool.query(`
-        SELECT
-          id_video,
-          titulo,
-          tags,
-          tag_color
-        FROM musicas
-      `);
+    const [rows]: any = await pool.query(`
+      SELECT
+        id_video,
+        titulo,
+        tags,
+        tag_color
+      FROM musicas
+    `);
 
     if (!rows.length) {
       return {
@@ -212,87 +98,46 @@ export async function buscarMusicasMonitoradas() {
       };
     }
 
-    /*
-      Todos IDs numa request
-    */
-    const videoIds = rows.map(
-      (m: any) => m.id_video
-    );
+    const videoIds = rows.map((m: any) => m.id_video);
+    const statsVideos = await obterDadosVideos(videoIds);
 
-    /*
-      Busca YouTube
-    */
-    const statsVideos =
-      await obterDadosVideos(
-        videoIds
-      );
-
-    /*
-      Mapa rápido
-    */
-    const statsMap = new Map<
-      string,
-      YouTubeVideoData
-    >();
+    const statsMap = new Map<string, YouTubeVideoData>();
 
     for (const video of statsVideos) {
-      statsMap.set(
-        video.videoId,
-        video
-      );
+      statsMap.set(video.videoId, video);
     }
 
-    /*
-      Merge final
-    */
-    const musicasComStats =
-      rows.map((musica: any) => {
-        const stats =
-          statsMap.get(
-            musica.id_video
-          );
+    const musicasComStats = await Promise.all(
+      rows.map(async (musica: any) => {
+        const stats = statsMap.get(musica.id_video);
 
-        const idadeData =
-          calcularIdade(
-            stats?.publishedAt ||
-              null
-          );
+        const idadeData = calcularIdade(stats?.publishedAt || null);
+        const tendencia = await calcularTendencia(musica.id_video);
 
         return {
-          id_video:
-            musica.id_video,
+          id_video: musica.id_video,
+          titulo: musica.titulo || stats?.title || 'Sem título',
+          tags: musica.tags || '',
+          tag_color: musica.tag_color || '#3b82f6',
 
-          titulo:
-            musica.titulo ||
-            stats?.title ||
-            'Sem título',
+          views: stats?.views || 0,
+          likes: stats?.likes || 0,
+          comentarios: stats?.comments || 0,
 
-          tags:
-            musica.tags || '',
+          idade: idadeData.texto,
+          idadeDias: idadeData.dias,
 
-          tag_color:
-            musica.tag_color ||
-            '#3b82f6',
+          thumbnail: stats?.thumbnail || '',
 
-          views:
-            stats?.views || 0,
+          trend: tendencia.trend,
+          trendPercent: tendencia.percent,
+          trendDelta: tendencia.delta,
 
-          likes:
-            stats?.likes || 0,
-
-          comentarios:
-            stats?.comments || 0,
-
-          idade:
-            idadeData.texto,
-
-          idadeDias:
-            idadeData.dias,
-
-          thumbnail:
-            stats?.thumbnail || '',
+          deltaViews: tendencia.delta,
+          percentChange: tendencia.percent,
         };
-      });
+      })
+    );
 
     return {
       success: true,
@@ -309,52 +154,237 @@ export async function buscarMusicasMonitoradas() {
 }
 
 /* =========================================================
+   RESTANTE DO ARQUIVO
+========================================================= */
+
+export async function cadastrarMusica(urlOuId: string) {
+  try {
+    const videoId = extrairVideoId(urlOuId);
+
+    if (!videoId) {
+      return { success: false, error: 'URL inválida' };
+    }
+
+    const dadosYoutube = await obterDadosVideos([videoId]);
+    const video = dadosYoutube[0];
+
+    if (!video) {
+      return { success: false, error: 'Vídeo não encontrado' };
+    }
+
+    const [rows]: any = await pool.query(
+      `
+      SELECT id_video
+      FROM pedidos_musicas
+      WHERE id_video = ?
+      `,
+      [videoId]
+    );
+
+    if (rows.length > 0) {
+      await pool.query(
+        `
+        UPDATE pedidos_musicas
+        SET votos = votos + 1
+        WHERE id_video = ?
+        `,
+        [videoId]
+      );
+    } else {
+      await pool.query(
+        `
+        INSERT INTO pedidos_musicas
+        (id_video, titulo_sugerido, votos)
+        VALUES (?, ?, ?)
+        `,
+        [videoId, video.title, 1]
+      );
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error(error);
+
+    return {
+      success: false,
+      error: error?.message || 'Erro desconhecido',
+    };
+  }
+}
+
+export async function buscarPedidosPopulares() {
+  try {
+    const [rows] = await pool.query(`
+      SELECT id_video, titulo_sugerido, votos
+      FROM pedidos_musicas
+      WHERE votos >= 15
+      ORDER BY votos DESC
+    `);
+
+    return { success: true, dados: rows };
+  } catch (error) {
+    console.error(error);
+
+    return { success: false, dados: [] };
+  }
+}
+
+/* =========================================================
    EXTRATOR YOUTUBE
 ========================================================= */
 
-function extrairVideoId(
-  urlOuId: string
-): string | null {
+function extrairVideoId(urlOuId: string): string | null {
   try {
-    /*
-      Se já for ID puro
-    */
     if (
-      !urlOuId.includes(
-        'youtube'
-      ) &&
-      !urlOuId.includes(
-        'youtu.be'
-      )
+      !urlOuId.includes('youtube') &&
+      !urlOuId.includes('youtu.be')
     ) {
       return urlOuId;
     }
 
-    const url = new URL(
-      urlOuId
-    );
+    const url = new URL(urlOuId);
 
-    /*
-      youtu.be
-    */
-    if (
-      url.hostname.includes(
-        'youtu.be'
-      )
-    ) {
-      return url.pathname.replace(
-        '/',
-        ''
-      );
+    if (url.hostname.includes('youtu.be')) {
+      return url.pathname.replace('/', '');
     }
 
-    /*
-      youtube.com/watch?v=
-    */
-    return url.searchParams.get(
-      'v'
-    );
+    return url.searchParams.get('v');
   } catch {
     return null;
+  }
+}
+
+export async function obterHistoricoVideo(videoId: string) {
+  try {
+    const [rows]: any = await pool.query(
+      `
+      SELECT
+        views,
+        likes,
+        comentarios,
+        capturado_em
+      FROM musicas_historico
+      WHERE id_video = ?
+      ORDER BY capturado_em ASC
+      `,
+      [videoId]
+    );
+
+    if (!rows.length) {
+      return {
+        success: true,
+        dados: [],
+      };
+    }
+
+    const serie = rows.map((r: any) => ({
+      date: new Date(r.capturado_em).toISOString().split('T')[0],
+      views: Number(r.views),
+      likes: Number(r.likes),
+      comments: Number(r.comentarios),
+    }));
+
+    return {
+      success: true,
+      dados: serie,
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      success: false,
+      dados: [],
+    };
+  }
+}
+
+export async function preverCrescimento(videoId: string) {
+  try {
+    const [rows]: any = await pool.query(
+      `
+      SELECT views, capturado_em
+      FROM musicas_historico
+      WHERE id_video = ?
+      ORDER BY capturado_em ASC
+      `,
+      [videoId]
+    );
+
+    if (rows.length < 2) {
+      return {
+        success: false,
+        error: 'Poucos dados para previsão',
+      };
+    }
+
+    const views = rows.map((r: any) => Number(r.views));
+    const n = views.length;
+
+    const Vn = views[n - 1];
+    const V0 = views[0];
+
+    const diasTotal =
+      (new Date(rows[n - 1].capturado_em).getTime() -
+        new Date(rows[0].capturado_em).getTime()) /
+        (1000 * 60 * 60 * 24) || 1;
+
+    const baseGrowth = (Vn - V0) / diasTotal;
+
+    const m = Math.min(3, n - 1);
+    const VshortStart = views[n - 1 - m];
+    const gShort = (Vn - VshortStart) / m;
+    const gLong = baseGrowth;
+
+    const acceleration =
+      gLong !== 0 ? (gShort - gLong) / gLong : 0;
+
+    let growth = gShort;
+
+    if (n < 5) {
+      growth = baseGrowth;
+    } else {
+      if (acceleration > 0.25) {
+        growth *= 1.2;
+      } else if (acceleration < -0.25) {
+        growth *= 0.8;
+      }
+    }
+
+    function estimate(target: number) {
+      if (growth <= 0) return null;
+
+      return Math.ceil((target - Vn) / growth);
+    }
+
+    return {
+      success: true,
+      dados: {
+        atual: Vn,
+        growth,
+        baseGrowth,
+        gShort,
+        gLong,
+        acceleration,
+        confianca:
+          n < 5
+            ? 'baixa'
+            : Math.abs(acceleration) < 0.2
+            ? 'media'
+            : 'alta',
+        metas: {
+          '1M': estimate(1_000_000),
+          '10M': estimate(10_000_000),
+          '100M': estimate(100_000_000),
+          '1B': estimate(1_000_000_000),
+        },
+      },
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      success: false,
+      error: 'Erro no modelo de previsão',
+    };
   }
 }

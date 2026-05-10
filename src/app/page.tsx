@@ -1,4 +1,6 @@
 'use client';
+export const dynamic = 'force-dynamic';
+
 
 import {
   useState,
@@ -33,6 +35,12 @@ interface Musica {
   idadeDias: number;
 
   thumbnail: string;
+
+  trend: 'up' | 'down' | 'stable';
+
+  trendPercent: number;
+
+  trendDelta: number;
 }
 
 export default function Home() {
@@ -118,7 +126,12 @@ export default function Home() {
           ordem.campo ===
             'comentarios' ||
           ordem.campo ===
-            'idadeDias'
+            'idadeDias'   ||
+          ordem.campo ===
+           'trendPercent' ||
+           ordem.campo === 
+           'trendDelta'
+
         ) {
           valA = Number(valA) || 0;
           valB = Number(valB) || 0;
@@ -146,18 +159,13 @@ export default function Home() {
       ordem,
     ]);
 
-  function toggleOrdem(
-    campo: string
-  ) {
-    setOrdem((prev) => ({
-      campo,
-
-      asc:
-        prev.campo === campo
-          ? !prev.asc
-          : false,
-    }));
-  }
+  function toggleOrdem(campo: string) {
+  setOrdem((prev) => ({
+    campo,
+    asc: campo === 'trendPercent' ? false :
+         prev.campo === campo ? !prev.asc : false,
+  }));
+}
 
   async function handlePedido() {
     if (!url) {
@@ -326,6 +334,22 @@ export default function Home() {
             >
               Pedir {status}
             </button>
+
+            <button
+             onClick={() => toggleOrdem('trendPercent')}
+             className="
+              bg-[#222]
+              hover:bg-[#333]
+              text-white
+              px-4
+              py-2
+              font-bold
+              uppercase
+              transition-colors
+              "
+              >
+              Trend {ordem.campo === 'trendPercent' && (ordem.asc ? '▲' : '▼')}
+            </button>
           </div>
         </div>
 
@@ -442,6 +466,10 @@ export default function Home() {
                       : '▼')}
                 </th>
 
+                      <th className="p-3 border border-[#181818] text-right">
+                  Trend
+                </th>
+                      
               </tr>
             </thead>
 
@@ -543,11 +571,29 @@ export default function Home() {
                     <td className="p-3 text-right font-mono text-[#666] italic">
                       {m.idade}
                     </td>
+                      <td className="p-3 text-right font-mono">
+  {m.trend === 'up' && (
+    <span className="text-green-500 font-bold">
+      ▲ {m.trendPercent.toFixed(2)}%
+    </span>
+  )}
 
+  {m.trend === 'down' && (
+    <span className="text-red-500 font-bold">
+      ▼ {Math.abs(m.trendPercent).toFixed(2)}%
+    </span>
+  )}
+
+  {m.trend === 'stable' && (
+    <span className="text-[#666]">
+      —
+    </span>
+  )}
+</td>
                   </tr>
                 )
               )}
-
+              
             </tbody>
           </table>
         </div>
