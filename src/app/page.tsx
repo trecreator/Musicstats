@@ -76,33 +76,38 @@ export default function Home() {
     );
 
     filtrado.sort((a, b) => {
-      const campo = ordem.campo;
+  const campo = ordem.campo as keyof Musica;
 
-      let valA: any = a[campo];
-      let valB: any = b[campo];
+  let valA: any = a[campo];
+  let valB: any = b[campo];
 
-      const numericos: (keyof Musica)[] = [
-        'views',
-        'likes',
-        'comentarios',
-        'idadeDias',
-        'trendPercent',
-        'trendDelta',
-      ];
+  const numericos: (keyof Musica)[] = [
+    'views',
+    'likes',
+    'comentarios',
+    'idadeDias',
+    'trendPercent',
+    'trendDelta',
+  ];
 
-      if (numericos.includes(campo)) {
-        valA = Number(valA ?? 0);
-        valB = Number(valB ?? 0);
-      } else {
-        valA = valA ?? '';
-        valB = valB ?? '';
-      }
+  const isNumero = numericos.includes(campo);
 
-      if (valA < valB) return ordem.asc ? -1 : 1;
-      if (valA > valB) return ordem.asc ? 1 : -1;
+  if (isNumero) {
+    valA = Number(valA);
+    valB = Number(valB);
 
-      return 0;
-    });
+    if (isNaN(valA)) valA = 0;
+    if (isNaN(valB)) valB = 0;
+  } else {
+    valA = (valA ?? '').toString().toLowerCase();
+    valB = (valB ?? '').toString().toLowerCase();
+  }
+
+  if (valA < valB) return ordem.asc ? -1 : 1;
+  if (valA > valB) return ordem.asc ? 1 : -1;
+
+  return 0;
+});
 
     return filtrado;
   }, [catalogo, busca, ordem]);
