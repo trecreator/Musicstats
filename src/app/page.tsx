@@ -205,12 +205,7 @@ export default function Home() {
               Pedir {status}
             </button>
 
-            <button
-              onClick={() => toggleOrdem('trendPercent')}
-              className="bg-[#222] hover:bg-[#333] text-white px-4 py-2 font-bold uppercase transition-colors"
-            >
-              Trend {ordem.campo === 'trendPercent' ? (ordem.asc ? '▲' : '▼') : ''}
-            </button>
+            
 
           </div>
         </div>
@@ -298,22 +293,22 @@ export default function Home() {
                   </td>
 
                   <td className="p-3 text-right font-mono">
-                    {m.trend === 'up' && (
-                      <span className="text-green-500 font-bold">
-                        ▲ {(m.trendPercent ?? 0).toFixed(2)}%
-                      </span>
-                    )}
-
-                    {m.trend === 'down' && (
-                      <span className="text-red-500 font-bold">
-                        ▼ {Math.abs(m.trendPercent ?? 0).toFixed(2)}%
-                      </span>
-                    )}
-
-                    {m.trend === 'stable' && (
-                      <span className="text-[#666]">—</span>
-                    )}
-                  </td>
+  {typeof m.trendPercent === 'number' ? (
+    m.trend === 'up' ? (
+      <span className="text-green-500 font-bold">
+        ▲ {m.trendPercent.toFixed(2)}%
+      </span>
+    ) : m.trend === 'down' ? (
+      <span className="text-red-500 font-bold">
+        ▼ {Math.abs(m.trendPercent).toFixed(2)}%
+      </span>
+    ) : (
+      <span className="text-[#666]">—</span>
+    )
+  ) : (
+    <span className="text-[#666]">—</span>
+  )}
+</td>
 
                 </tr>
               ))}
