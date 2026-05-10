@@ -1,7 +1,11 @@
-import { db } from "@/lib/db";
+"use server";
+
+import { pool } from "@/lib/db";
+import { buscarMusicasMonitoradas } from "@/services/musicService";
+
 
 export async function getAllMusic() {
-  const [rows] = await db.query<any[]>(`
+  const [rows] = await pool.query<any[]>(`
     SELECT * FROM musicas
   `);
   return rows;
@@ -10,7 +14,7 @@ export async function getAllMusic() {
 
 
 export async function getMusicById(id_video: string) {
-  const [rows]: any = await db.query(
+  const [rows]: any = await pool.query(
     `
     SELECT *
     FROM musicas
@@ -21,4 +25,8 @@ export async function getMusicById(id_video: string) {
   );
 
   return rows?.[0] || null;
+}
+
+export async function getHomeData() {
+  return await buscarMusicasMonitoradas();
 }
