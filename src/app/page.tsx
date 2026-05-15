@@ -1,26 +1,51 @@
+export const dynamic = 'force-dynamic';
+
+
 import PainelMusicas from './_components/home/PainelMusicas';
-import { buscarTodasAsMusicas } from './actions/searchMusic';
+import { buscarMusicasAvancado } from './actions/searchMusic'; // Importação alterada para a nova função
+import { SuavizarNumero } from '@/utils/math';
 
-// 1. Adicionado o "async" para permitir o uso de await no servidor
-export default async function MainPage() {
+interface MainPageProps {
+  searchParams: Promise<{ 
+    busca?: string; 
+    pagina?: string; 
+    ordem?: string; 
+  }>;
+}
 
-    // 2. Adicionado o "await" para esperar os dados do banco de dados chegarem
-    const musicas = await buscarTodasAsMusicas(25, 0);
+export default async function MainPage({ searchParams }: MainPageProps) {
+    // 1. Captura as variáveis direto da URL do navegador de forma assíncrona
+    const params = await searchParams;
+    const termoBusca = params.busca ?? "";
+    const paginaAtual = Number(params.pagina) || 1;
+    const ordemFiltro = params.ordem ?? "views_desc";
+
+    // 2. Dispara a busca inteligente unificada no MySQL
+    const musicas = await buscarMusicasAvancado(termoBusca, paginaAtual, 25, ordemFiltro);
     
-    // Como 'musicas' agora é um array real (e não uma promessa), o .length funciona perfeitamente
-    let MusicasEncontradas: number = musicas.length;
+    // 3. Cálculos dinâmicos baseados no resultado atual do banco
+    const totalViewsInPage = SuavizarNumero(musicas.reduce((total, musica) => total + musica.views, 0));
+    const MusicasEncontradas: number = musicas.length;
 
   return (
-    <main className="pt-24 min-h-screen bg-yellow-900/1">
+    <main className="px-30 mt-[100px] min-h-screen bg-yellow-900/1 ">
       
-      {/* Exibe a contagem de músicas inicial */}
       <div className="p-6 max-w-5xl mx-auto text-sm text-white/80 font-mono">
-        {MusicasEncontradas} listed musics on this page. 
+        Search and see kworb style music analytics. 
       </div>
 
-      {/* 3. Corrigido a tag de fechamento do componente e injetado os dados iniciais */}
+      {/* Exibe a contagem de músicas dinâmica baseada na busca/página */}
+      <div className="p-3 max-w-5xl mx-auto text-sm text-white/80 font-mono">
+        {MusicasEncontradas} listed musics on this page | total views in this page: {totalViewsInPage}
+      </div>
+
+      {/* 4. Passamos os dados e os estados da URL para o Painel criar os botões e filtros */}
       <div className="p-2 max-w-5xl mx-auto">
-        <PainelMusicas musicasIniciais={musicas} />
+        <PainelMusicas 
+          musicasIniciais={musicas} 
+          paginaAtual={paginaAtual}
+          ordemAtual={ordemFiltro}
+        />
       </div>
 
     </main>

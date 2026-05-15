@@ -8,7 +8,7 @@ export async function calcularYesterdayViews(id_video: string)
     
     if(!musica || !musicaHistorico){return 0;}
 
-    let yesterdayViews: number =  (musicaHistorico.views - musica.views)
+    let yesterdayViews: number =  (musica.views - musicaHistorico.views)
 
-    
+    return yesterdayViews;
 }

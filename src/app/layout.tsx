@@ -35,6 +35,12 @@ export default function RootLayout({
 
 
         <Analytics />
+
+        <footer className="w-full py-8 mt-12 border-t border-white/5 text-center font-mono text-xs text-white/30">
+          <p>© {new Date().getFullYear()} MusicalStats. All rights reserved.</p>
+        </footer>
+
+
       </body>
     </html>
   );
