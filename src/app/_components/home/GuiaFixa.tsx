@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from "react";
 import BarraBusca from "./BarraDePesquisaMusicas";
 
 export default function GuiaFixa()
@@ -14,7 +15,9 @@ export default function GuiaFixa()
                     <span className="text-blue-500">Musical</span>
                     <span className="text-white">Stats</span>
                 
+                    <Suspense>
                     <BarraBusca />
+                    </Suspense>
 
                 </h1>
                 
