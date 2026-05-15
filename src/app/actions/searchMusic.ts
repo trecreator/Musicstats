@@ -84,3 +84,32 @@ export async function buscarHistorioMusica(id_video: string): Promise<MusicaHist
   );
   return rows[0] ?? null;
 }
+
+// Adicione no final de src/app/actions/searchMusic.ts
+
+export async function registrarVisitaMusica(id_video: string, ip: string): Promise<void> {
+  if (!id_video || !ip) return;
+
+  // 1. Verifica se já existe um acesso desse IP para esse vídeo na data de HOJE
+  const [rows] = await conexao.query<any[]>(
+    `SELECT id FROM musicas_visitas_log 
+     WHERE id_video = ? AND ip_usuario = ? AND data_acesso = CURDATE() 
+     LIMIT 1`,
+    [id_video, ip]
+  );
+
+  // 2. Se o banco encontrou uma linha, significa que o IP já acessou hoje. Paramos aqui.
+  if (rows.length > 0) return;
+
+  // 3. Caso contrário, registra o IP no log diário para travar novos cliques hoje
+  await conexao.query(
+    `INSERT INTO musicas_visitas_log (id_video, ip_usuario, data_acesso) VALUES (?, ?, CURDATE())`,
+    [id_video, ip]
+  );
+
+  // 4. Incrementa o contador oficial de 'visits' na tabela de músicas
+  await conexao.query(
+    `UPDATE musicas SET visits = visits + 1 WHERE id_video = ?`,
+    [id_video]
+  );
+}

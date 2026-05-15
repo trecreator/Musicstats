@@ -1,7 +1,8 @@
 export const dynamic = 'force-dynamic';
 
 import Image from "next/image";
-import { buscarHistorioMusica, buscarMusicaPorId } from "@/app/actions/searchMusic";
+import { headers } from "next/headers";
+import { registrarVisitaMusica, buscarHistorioMusica, buscarMusicaPorId } from "@/app/actions/searchMusic";
 import { SuavizarNumero } from "@/utils/math";
 import { calcularYesterdayViews } from "@/services/growthService";
 import { MusicaHistorico } from "@/types/musicHistorico";
@@ -14,9 +15,20 @@ interface VideoPageProps {
 export default async function VideoPage({ params }: VideoPageProps) {
   const { id } = await params;
 
+  // 1. CAPTURA O IP DO USUÁRIO
+  const cabecalhos = await headers();
+  const ipUsuario = cabecalhos.get("x-forwarded-for")?.split(",")[0] // Corrigido: Adicionado o índice [0]
+    || cabecalhos.get("x-real-ip") 
+    || "127.0.0.1";
+
+  // 2. REGISTRA A VISITA PRIMEIRO (Para atualizar a tabela no banco antes de ler os dados)
+  await registrarVisitaMusica(id, ipUsuario);
+
+  // 3. BUSCA OS DADOS ATUALIZADOS NO MYSQL
   const musica = await buscarMusicaPorId(id);
   const historico: MusicaHistorico | null = await buscarHistorioMusica(id);
   
+  // 4. Salvaguardas de segurança contra nulos
   if (!musica) {
     return (
       <main className="pt-24 min-h-screen bg-black text-white p-6 font-mono text-center">
@@ -33,6 +45,7 @@ export default async function VideoPage({ params }: VideoPageProps) {
     );
   }
 
+  // 5. Lógica de Cálculos Analíticos
   const yesterdayViews = await calcularYesterdayViews(id);
   const ViewsSuavizadas = SuavizarNumero(musica.views);
   const yesterdayViewsSuavizadas = SuavizarNumero(yesterdayViews);
@@ -67,10 +80,10 @@ export default async function VideoPage({ params }: VideoPageProps) {
         </Link>
       </h4>
 
-      {/* Conteúdo Centralizado (Coluna: Vídeo em cima, dados embaixo) */}
+      {/* Conteúdo Centralizado */}
       <div className="flex flex-col items-center max-w-4xl mx-auto gap-8 mb-16">
         
-        {/* Box do Player de Vídeo Iframe (Centralizado com proporção exata) */}
+        {/* Box do Player de Vídeo Iframe */}
         <div className="w-[600px] h-[337.5px] overflow-hidden rounded border border-white/15 bg-black shadow-2xl shadow-purple-950/20">
           <iframe
             width={600}
@@ -83,7 +96,7 @@ export default async function VideoPage({ params }: VideoPageProps) {
           />
         </div>
 
-        {/* Informações Abaixo do Vídeo (Estilo Painel Kworb Limpo) */}
+        {/* Informações Abaixo do Vídeo */}
         <div className="w-[600px] border border-white/10 bg-white/5 rounded backdrop-blur-md p-6 font-mono">
           
           <div className="text-xs uppercase font-bold tracking-widest text-white/30 border-b border-white/5 pb-2 mb-4">
@@ -91,7 +104,6 @@ export default async function VideoPage({ params }: VideoPageProps) {
           </div>
 
           <div className="space-y-3">
-            
             <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
               <span className="text-white/50">Video ID</span>
               <span className="text-red-400 font-semibold">{musica.id_video}</span>
@@ -126,13 +138,12 @@ export default async function VideoPage({ params }: VideoPageProps) {
               <span className="text-white/50">New Comments Yesterday</span>
               <span className="text-purple-300 font-semibold">+{yesterdayComments}</span>
             </div>
-
           </div>
         </div>
 
       </div>
 
-      {/* Rodapé de Navegação */}
+      {/* Rodapé de Navegação (Agora exibe o número de visitas já atualizado em tempo real) */}
       <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-6 max-w-xl mx-auto">
         Page Visits: {musica.visits} &nbsp;|&nbsp; 
         <Link href="/" className="text-purple-400 hover:text-purple-300 hover:underline ml-1 font-bold">
