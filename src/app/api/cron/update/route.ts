@@ -71,6 +71,8 @@ export async function GET(request: NextRequest) {
     // 2. Agrupa os IDs por lote
     const listaIds = musicas.map(m => m.id_video.trim()).join(",");
     const urlYoutube = `https://googleapis.com{listaIds}&key=${apiKey}`;
+
+
     
     // 3. Executa via canal nativo de HTTPS
     const dados = await fazerRequisicaoHttps(urlYoutube);
