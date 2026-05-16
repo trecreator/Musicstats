@@ -20,7 +20,7 @@ const poolConfig = process.env.DATABASE_URL
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tokenUrl = searchParams.get("token");
-  const tokenSecreto = process.env.CRON_SECRET || "ms_121920eCCLk2978_sec_page_r9";
+  const tokenSecreto = process.env.CRON_SECRET || "SUA_SENHA_AQUI";
 
   if (!tokenUrl || tokenUrl !== tokenSecreto) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Banco de dados não configurado." }, { status: 500 });
   }
 
-  const apiKey = process.env.YOUTUBE_API_KEY;
+  // Remove qualquer espaço em branco acidental que possa ter vindo do painel da Vercel
+  const apiKey = process.env.YOUTUBE_API_KEY?.trim();
   if (!apiKey) {
     return NextResponse.json({ error: "YOUTUBE_API_KEY ausente." }, { status: 500 });
   }
@@ -38,51 +39,69 @@ export async function GET(request: NextRequest) {
   const conexao = await mysql.createConnection(poolConfig);
 
   try {
-    // 1. Coleta todas as músicas
-    const [musicas] = await conexao.query<any[]>("SELECT id_video FROM musicas");
+    // 1. Busca os IDs garantindo que não pegará registros nulos ou em branco
+    const [musicas] = await conexao.query<any[]>(
+      "SELECT id_video FROM musicas WHERE id_video IS NOT NULL AND id_video != ''"
+    );
     
     if (musicas.length === 0) {
       await conexao.end();
-      return NextResponse.json({ success: true, message: "Nenhuma música para atualizar." });
+      return NextResponse.json({ success: true, message: "Nenhuma música válida para atualizar." });
     }
 
-    // 2. Transforma a lista de IDs em uma única string separada por vírgulas (ex: "id1,id2,id3")
-    const listaIds = musicas.map(m => m.id_video).join(",");
+    // 2. Cria a lista limpando espaços vazios acidentais dos lados de cada ID
+    const listaIds = musicas.map(m => m.id_video.trim()).join(",");
 
-    // 3. FAZ APENAS UM FETCH SEGURO PARA TODOS OS VÍDEOS DE UMA VEZ
+    // 3. Monta a URL oficial da API v3 do YouTube
     const urlYoutube = `https://googleapis.com{listaIds}&key=${apiKey}`;
-    const resposta = await fetch(urlYoutube);
+    
+    // 4. Configura headers básicos de agente de navegação para evitar bloqueios da Vercel
+    const resposta = await fetch(urlYoutube, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+      },
+      next: { revalidate: 0 } // Desativa o cache interno do Next.js
+    });
     
     if (!resposta.ok) {
-      throw new Error(`Erro na API do YouTube: ${resposta.statusText}`);
+      const textoErro = await resposta.text();
+      throw new Error(`Google API respondeu com erro ${resposta.status}: ${textoErro}`);
     }
     
     const dados = await resposta.json();
 
-    if (dados.items && dados.items.length > 0) {
-      // 4. Grava os novos dados de cada vídeo no MySQL aproveitando a mesma conexão aberta
-      for (const item of dados.items) {
-        const idVideo = item.id;
-        const stats = item.statistics;
-        const views = Number(stats.viewCount || 0);
-        const likes = Number(stats.likeCount || 0);
-        const comentarios = Number(stats.commentCount || 0);
+    if (!dados.items || dados.items.length === 0) {
+      await conexao.end();
+      return NextResponse.json({ success: false, error: "Nenhum dado retornado do YouTube. Verifique os IDs." });
+    }
 
-        await conexao.query(
-          `UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?`,
-          [views, likes, comentarios, idVideo]
-        );
-      }
+    // 5. Salva os dados no banco
+    for (const item of dados.items) {
+      const idVideo = item.id;
+      const stats = item.statistics;
+      const views = Number(stats.viewCount || 0);
+      const likes = Number(stats.likeCount || 0);
+      const comentarios = Number(stats.commentCount || 0);
+
+      await conexao.query(
+        `UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?`,
+        [views, likes, comentarios, idVideo]
+      );
     }
 
     await conexao.end();
     return NextResponse.json({ 
       success: true, 
-      message: `Métricas de ${dados.items?.length || 0} músicas sincronizadas instantaneamente!` 
+      message: `Métricas de ${dados.items.length} músicas sincronizadas com sucesso!` 
     });
 
   } catch (error: any) {
     if (conexao) await conexao.end();
-    return NextResponse.json({ success: false, error: error?.message || "Erro no processamento do lote" }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      error: error?.message || "Erro desconhecido na execução do fetch" 
+    }, { status: 500 });
   }
 }
