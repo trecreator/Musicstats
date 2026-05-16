@@ -6,28 +6,29 @@ import type { Musica } from "@/types/music";
 import type { MusicaHistoricoRow } from "@/types/musicHistorico";
 import type { MusicaHistorico } from "@/types/musicHistorico";
 
-// LÓGICA INTELIGENTE COM SSL ADICIONADO:
+// 1. CHECAGEM DE SEGURANÇA: Se não houver dados, cria um objeto vazio seguro para o Next.js não travar o build
+const deNuvem = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
+
 const poolConfig = process.env.DATABASE_URL
   ? { uri: process.env.DATABASE_URL }
-  : {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      // ADICIONE ESTA LINHA ABAIXO:
-      ssl: { rejectUnauthorized: false } 
-    };
-
+  : deNuvem 
+    ? {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        ssl: { rejectUnauthorized: false }
+      }
+    : { host: "127.0.0.1" }; // Fallback inofensivo apenas para passar pelo robô de build da Vercel
 
 const globalForMysql = globalThis as unknown as {
   conexao: mysql.Pool | undefined;
 };
 
-// Instancia o Pool único de conexões reutilizáveis
 const conexao = globalForMysql.conexao ?? mysql.createPool(poolConfig);
 
 if (process.env.NODE_ENV !== 'production') {
