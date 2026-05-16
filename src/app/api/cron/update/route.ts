@@ -20,7 +20,7 @@ const poolConfig = process.env.DATABASE_URL
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tokenUrl = searchParams.get("token");
-  const tokenSecreto = process.env.CRON_SECRET || "SUA_SENHA_AQUI";
+  const tokenSecreto = process.env.CRON_SECRET || "ms_121920eCCLk2978_sec_page_r9";
 
   if (!tokenUrl || tokenUrl !== tokenSecreto) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
