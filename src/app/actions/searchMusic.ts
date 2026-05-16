@@ -6,25 +6,28 @@ import type { Musica } from "@/types/music";
 import type { MusicaHistoricoRow } from "@/types/musicHistorico";
 import type { MusicaHistorico } from "@/types/musicHistorico";
 
-// LÓGICA INTELIGENTE: Se houver DATABASE_URL usa a URI, senão monta com as variáveis separadas da Vercel
+// LÓGICA INTELIGENTE COM SSL ADICIONADO:
 const poolConfig = process.env.DATABASE_URL
   ? { uri: process.env.DATABASE_URL }
   : {
       host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT || 3306),
+      port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       waitForConnections: true,
       connectionLimit: 10,
-      queueLimit: 0
+      queueLimit: 0,
+      // ADICIONE ESTA LINHA ABAIXO:
+      ssl: { rejectUnauthorized: false } 
     };
+
 
 const globalForMysql = globalThis as unknown as {
   conexao: mysql.Pool | undefined;
 };
 
-// Cria a conexão utilizando a configuração dinâmica adaptativa
+// Instancia o Pool único de conexões reutilizáveis
 const conexao = globalForMysql.conexao ?? mysql.createPool(poolConfig);
 
 if (process.env.NODE_ENV !== 'production') {
@@ -62,13 +65,14 @@ export async function buscarMusicasAvancado(
   return rows;
 }
 
-// --- SUAS OUTRAS FUNÇÕES AUXILIARES ---
+// --- AJUSTADO: Retorna explicitamente a primeira linha do array ou null se estiver vazio ---
 export async function buscarMusicaPorId(id_video: string): Promise<Musica | null> {
   const [rows] = await conexao.query<MusicaRow[]>(
     `SELECT id_video, titulo, url_video, views, likes, comentarios, published_at, thumbnail, ultima_atualizacao, visits FROM musicas WHERE id_video = ? LIMIT 1`,
     [id_video]
   );
-  return rows[0] ?? null; 
+  if (!rows || rows.length === 0) return null;
+  return rows[0]; 
 }
 
 export async function buscarTags(id_video: string) {
@@ -79,12 +83,14 @@ export async function buscarTags(id_video: string) {
   return rows;
 }
 
+// --- AJUSTADO: Retorna explicitamente a primeira linha do array ou null se estiver vazio ---
 export async function buscarHistorioMusica(id_video: string): Promise<MusicaHistorico | null> {
   const [rows] = await conexao.query<MusicaHistoricoRow[]>(
     `SELECT id_video, views, likes, comentarios, capturado_em FROM musicas_historico WHERE id_video = ? LIMIT 1;`,
     [id_video]
   );
-  return rows[0] ?? null;
+  if (!rows || rows.length === 0) return null;
+  return rows[0];
 }
 
 export async function registrarVisitaMusica(id_video: string, ip: string): Promise<void> {
