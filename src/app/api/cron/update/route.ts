@@ -3,7 +3,7 @@ import mysql from "mysql2/promise";
 import https from "https";
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Força o Next.js a ignorar qualquer cache de rota
+export const revalidate = 0;
 
 const deNuvem = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
 const poolConfig = process.env.DATABASE_URL
@@ -19,7 +19,6 @@ const poolConfig = process.env.DATABASE_URL
       }
     : null;
 
-// FUNÇÃO AUXILIAR: Executa a requisição usando HTTPS nativo para ignorar falhas do fetch do Node/Vercel
 function fazerRequisicaoHttps(url: string): Promise<any> {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
@@ -38,7 +37,6 @@ function fazerRequisicaoHttps(url: string): Promise<any> {
   });
 }
 
-// FUNÇÃO AUXILIAR: Divide um array em pedaços menores (chunks)
 function dividirEmLotes<T>(array: T[], tamanho: number): T[][] {
   const lotes: T[][] = [];
   for (let i = 0; i < array.length; i += tamanho) {
@@ -69,7 +67,6 @@ export async function GET(request: NextRequest) {
   let totalAtualizado = 0;
 
   try {
-    // 1. Busca todos os IDs de músicas salvos no banco
     const [musicas] = await conexao.query<any[]>(
       "SELECT id_video FROM musicas WHERE id_video IS NOT NULL AND id_video != ''"
     );
@@ -79,33 +76,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, message: "Banco vazio: nenhuma música para sincronização." });
     }
 
-    // 2. Divide a lista completa de músicas em lotes de 50 em 50 (limite do YouTube)
     const lotesDeMusicas = dividirEmLotes<any>(musicas, 50);
 
-    // O loop 'for...of' garante que ele espere um lote terminar antes de ir para o próximo
     for (const lote of lotesDeMusicas) {
       const novaListaIdsSincronizada = lote.map((m: any) => m.id_video.trim()).join(",");
       
-      // SOLUÇÃO ANTICACHE: Construção da URL via API de parâmetros oficial do ecossistema JS
       const parametrosYoutube = new URLSearchParams();
       parametrosYoutube.append("part", "statistics");
       parametrosYoutube.append("id", novaListaIdsSincronizada);
       parametrosYoutube.append("key", apiKey);
 
-      const urlYoutubeDefinitiva = `https://googleapis.com{parametrosYoutube.toString()}`;
+      // RESOLUÇÃO DE SINTAXE: Montagem da string sem usar crases para evitar o sumiço do cifrão ($)
+      const urlYoutubeDefinitiva = "https://googleapis.com?" + parametrosYoutube.toString();
 
-      // 3. Executa a requisição deste lote específico
       const dados = await fazerRequisicaoHttps(urlYoutubeDefinitiva);
 
       if (dados.error) {
-        throw new Error(`[Falha Google API]: ${dados.error.message || JSON.stringify(dados.error)}`);
+        throw new Error("[Falha Google API]: " + (dados.error.message || JSON.stringify(dados.error)));
       }
 
       if (!dados.items || dados.items.length === 0) {
         continue;
       }
 
-      // 4. Salva os dados atualizados deste lote no Railway
       for (const item of dados.items) {
         const idVideo = item.id;
         const stats = item.statistics;
@@ -114,7 +107,7 @@ export async function GET(request: NextRequest) {
         const comentarios = Number(stats.commentCount || 0);
 
         await conexao.query(
-          `UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?`,
+          "UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?",
           [views, likes, comentarios, idVideo]
         );
         totalAtualizado++;
@@ -129,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: `[SUCESSO] Sincronização concluída! Total de ${totalAtualizado} músicas atualizadas via HTTPS.` 
+      message: "[SUCESSO] Sincronização concluída! Total de " + totalAtualizado + " músicas atualizadas via HTTPS." 
     });
 
   } catch (error: any) {
