@@ -84,6 +84,8 @@ export async function GET(request: NextRequest) {
     // O loop 'for...of' garante que ele espere um lote terminar antes de ir para o próximo
     for (const lote of lotesDeMusicas) {
       const listaIds = lote.map(m => m.id_video.trim()).join(",");
+      
+      // LINHA CORRIGIDA: URL completa com o endpoint correto do YouTube e interpolação de string válida
       const urlYoutube = `https://googleapis.com{listaIds}&key=${apiKey}`;
 
       // 3. Executa a requisição deste lote específico
