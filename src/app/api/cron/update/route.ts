@@ -19,16 +19,23 @@ const poolConfig = process.env.DATABASE_URL
       }
     : null;
 
+// FUNÇÃO AUXILIAR MELHORADA: Captura o erro em formato de texto caso o Google rejeite o acesso
 function fazerRequisicaoHttps(url: string): Promise<any> {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       let dados = "";
       res.on("data", (chunk) => { dados += chunk; });
       res.on("end", () => {
+        // Se o status HTTP não for sucesso (200), joga o erro bruto na tela para sabermos o motivo
+        if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+          reject(new Error("Erro HTTP " + res.statusCode + " retornado pelo Google: " + dados));
+          return;
+        }
+
         try {
           resolve(JSON.parse(dados));
         } catch (e) {
-          reject(new Error("A resposta devolvida pelo YouTube não é um JSON válido."));
+          reject(new Error("O YouTube respondeu com sucesso, mas o corpo não era um JSON. Resposta: " + dados.substring(0, 200)));
         }
       });
     }).on("error", (err) => {
@@ -86,8 +93,7 @@ export async function GET(request: NextRequest) {
       parametrosYoutube.append("id", novaListaIdsSincronizada);
       parametrosYoutube.append("key", apiKey);
 
-      // RESOLUÇÃO DE SINTAXE: Montagem da string sem usar crases para evitar o sumiço do cifrão ($)
-      const urlYoutubeDefinitiva = "https://googleapis.com?" + parametrosYoutube.toString();
+      const urlYoutubeDefinitiva = "https://www.googleapis.com/youtube/v3/videos?" + parametrosYoutube.toString();
 
       const dados = await fazerRequisicaoHttps(urlYoutubeDefinitiva);
 
