@@ -28,7 +28,7 @@ function fazerRequisicaoHttps(url: string): Promise<any> {
         try {
           resolve(JSON.parse(dados));
         } catch (e) {
-          reject(new Error("Resposta do YouTube não é um JSON válido."));
+          reject(new Error("A resposta devolvida pelo YouTube não é um JSON válido."));
         }
       });
     }).on("error", (err) => {
@@ -52,16 +52,16 @@ export async function GET(request: NextRequest) {
   const tokenSecreto = process.env.CRON_SECRET || "ms_121920eCCLk2978_sec_page_r9";
 
   if (!tokenUrl || tokenUrl !== tokenSecreto) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+    return NextResponse.json({ error: "Acesso Não Autorizado via Token." }, { status: 401 });
   }
 
   if (!poolConfig) {
-    return NextResponse.json({ error: "Banco de dados não configurado." }, { status: 500 });
+    return NextResponse.json({ error: "Configuração do Banco de Dados ausente no servidor." }, { status: 500 });
   }
 
   const apiKey = process.env.YOUTUBE_API_KEY?.trim();
   if (!apiKey) {
-    return NextResponse.json({ error: "YOUTUBE_API_KEY ausente." }, { status: 500 });
+    return NextResponse.json({ error: "A credencial YOUTUBE_API_KEY não foi encontrada." }, { status: 500 });
   }
 
   const conexao = await mysql.createConnection(poolConfig);
@@ -75,28 +75,28 @@ export async function GET(request: NextRequest) {
     
     if (musicas.length === 0) {
       await conexao.end();
-      return NextResponse.json({ success: true, message: "Nenhuma música para atualizar." });
+      return NextResponse.json({ success: true, message: "Banco vazio: nenhuma música para sincronização." });
     }
 
     // 2. Divide a lista completa de músicas em lotes de 50 em 50 (limite do YouTube)
-    const lotesDeMusicas = dividirEmLotes(musicas, 50);
+    const lotesDeMusicas = dividirEmLotes<any>(musicas, 50);
 
     // O loop 'for...of' garante que ele espere um lote terminar antes de ir para o próximo
     for (const lote of lotesDeMusicas) {
-      const listaIds = lote.map(m => m.id_video.trim()).join(",");
+      const novaListaIdsSincronizada = lote.map((m: any) => m.id_video.trim()).join(",");
       
-      // LINHA CORRIGIDA: URL completa com o endpoint correto do YouTube e interpolação de string válida
-      const urlYoutube = `https://googleapis.com{listaIds}&key=${apiKey}`;
+      // ENDPOINT CORRIGIDO: URL correta com as variáveis interpoladas
+      const urlYoutubeDefinitiva = `https://googleapis.com{novaListaIdsSincronizada}&key=${apiKey}`;
 
       // 3. Executa a requisição deste lote específico
-      const dados = await fazerRequisicaoHttps(urlYoutube);
+      const dados = await fazerRequisicaoHttps(urlYoutubeDefinitiva);
 
       if (dados.error) {
-        throw new Error(`Google API erro: ${dados.error.message || JSON.stringify(dados.error)}`);
+        throw new Error(`[Falha Google API]: ${dados.error.message || JSON.stringify(dados.error)}`);
       }
 
       if (!dados.items || dados.items.length === 0) {
-        continue; // Se o lote atual falhar ou sumir do YouTube, pula e continua atualizando o resto
+        continue;
       }
 
       // 4. Salva os dados atualizados deste lote no Railway
@@ -118,19 +118,19 @@ export async function GET(request: NextRequest) {
     await conexao.end();
 
     if (totalAtualizado === 0) {
-      return NextResponse.json({ success: false, error: "Nenhum dado encontrado no YouTube para os IDs fornecidos." });
+      return NextResponse.json({ success: false, error: "Nenhum resultado retornado pelos servidores do YouTube." });
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: `Métricas de ${totalAtualizado} músicas sincronizadas com sucesso usando HTTPS nativo!` 
+      message: `[SUCESSO] Sincronização concluída! Total de ${totalAtualizado} músicas atualizadas via HTTPS.` 
     });
 
   } catch (error: any) {
     if (conexao) await conexao.end();
     return NextResponse.json({ 
       success: false, 
-      error: error?.message || "Erro interno na execução do Cron" 
+      error: error?.message || "Ocorreu um erro interno inesperado na rota Cron." 
     }, { status: 500 });
   }
 }
