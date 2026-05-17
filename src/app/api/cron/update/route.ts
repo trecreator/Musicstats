@@ -37,6 +37,15 @@ function fazerRequisicaoHttps(url: string): Promise<any> {
   });
 }
 
+// FUNÇÃO AUXILIAR: Divide um array em pedaços menores (chunks)
+function dividirEmLotes<T>(array: T[], tamanho: number): T[][] {
+  const lotes: T[][] = [];
+  for (let i = 0; i < array.length; i += tamanho) {
+    lotes.push(array.slice(i, i + tamanho));
+  }
+  return lotes;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tokenUrl = searchParams.get("token");
@@ -56,9 +65,10 @@ export async function GET(request: NextRequest) {
   }
 
   const conexao = await mysql.createConnection(poolConfig);
+  let totalAtualizado = 0;
 
   try {
-    // 1. Busca os IDs do banco salvos
+    // 1. Busca todos os IDs de músicas salvos no banco
     const [musicas] = await conexao.query<any[]>(
       "SELECT id_video FROM musicas WHERE id_video IS NOT NULL AND id_video != ''"
     );
@@ -68,42 +78,50 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, message: "Nenhuma música para atualizar." });
     }
 
-    // 2. Agrupa os IDs por lote
-    const listaIds = musicas.map(m => m.id_video.trim()).join(",");
-    const urlYoutube = `https://googleapis.com{listaIds}&key=${apiKey}`;
+    // 2. Divide a lista completa de músicas em lotes de 50 em 50 (limite do YouTube)
+    const lotesDeMusicas = dividirEmLotes(musicas, 50);
 
+    // O loop 'for...of' garante que ele espere um lote terminar antes de ir para o próximo
+    for (const lote of lotesDeMusicas) {
+      const listaIds = lote.map(m => m.id_video.trim()).join(",");
+      const urlYoutube = `https://googleapis.com{listaIds}&key=${apiKey}`;
 
-    
-    // 3. Executa via canal nativo de HTTPS
-    const dados = await fazerRequisicaoHttps(urlYoutube);
+      // 3. Executa a requisição deste lote específico
+      const dados = await fazerRequisicaoHttps(urlYoutube);
 
-    if (dados.error) {
-      throw new Error(`Google API erro: ${dados.error.message || JSON.stringify(dados.error)}`);
-    }
+      if (dados.error) {
+        throw new Error(`Google API erro: ${dados.error.message || JSON.stringify(dados.error)}`);
+      }
 
-    if (!dados.items || dados.items.length === 0) {
-      await conexao.end();
-      return NextResponse.json({ success: false, error: "Nenhum dado encontrado no YouTube para esses IDs." });
-    }
+      if (!dados.items || dados.items.length === 0) {
+        continue; // Se o lote atual falhar ou sumir do YouTube, pula e continua atualizando o resto
+      }
 
-    // 4. Salva no Railway
-    for (const item of dados.items) {
-      const idVideo = item.id;
-      const stats = item.statistics;
-      const views = Number(stats.viewCount || 0);
-      const likes = Number(stats.likeCount || 0);
-      const comentarios = Number(stats.commentCount || 0);
+      // 4. Salva os dados atualizados deste lote no Railway
+      for (const item of dados.items) {
+        const idVideo = item.id;
+        const stats = item.statistics;
+        const views = Number(stats.viewCount || 0);
+        const likes = Number(stats.likeCount || 0);
+        const comentarios = Number(stats.commentCount || 0);
 
-      await conexao.query(
-        `UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?`,
-        [views, likes, comentarios, idVideo]
-      );
+        await conexao.query(
+          `UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?`,
+          [views, likes, comentarios, idVideo]
+        );
+        totalAtualizado++;
+      }
     }
 
     await conexao.end();
+
+    if (totalAtualizado === 0) {
+      return NextResponse.json({ success: false, error: "Nenhum dado encontrado no YouTube para os IDs fornecidos." });
+    }
+
     return NextResponse.json({ 
       success: true, 
-      message: `Métricas de ${dados.items.length} músicas sincronizadas com sucesso usando HTTPS nativo!` 
+      message: `Métricas de ${totalAtualizado} músicas sincronizadas com sucesso usando HTTPS nativo!` 
     });
 
   } catch (error: any) {
