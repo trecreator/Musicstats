@@ -3,6 +3,7 @@ import mysql from "mysql2/promise";
 import https from "https";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Força o Next.js a ignorar qualquer cache de rota
 
 const deNuvem = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
 const poolConfig = process.env.DATABASE_URL
@@ -85,8 +86,13 @@ export async function GET(request: NextRequest) {
     for (const lote of lotesDeMusicas) {
       const novaListaIdsSincronizada = lote.map((m: any) => m.id_video.trim()).join(",");
       
-      // ENDPOINT CORRIGIDO: URL correta com as variáveis interpoladas
-      const urlYoutubeDefinitiva = `https://googleapis.com{novaListaIdsSincronizada}&key=${apiKey}`;
+      // SOLUÇÃO ANTICACHE: Construção da URL via API de parâmetros oficial do ecossistema JS
+      const parametrosYoutube = new URLSearchParams();
+      parametrosYoutube.append("part", "statistics");
+      parametrosYoutube.append("id", novaListaIdsSincronizada);
+      parametrosYoutube.append("key", apiKey);
+
+      const urlYoutubeDefinitiva = `https://googleapis.com{parametrosYoutube.toString()}`;
 
       // 3. Executa a requisição deste lote específico
       const dados = await fazerRequisicaoHttps(urlYoutubeDefinitiva);
