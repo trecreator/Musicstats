@@ -19,7 +19,6 @@ const poolConfig = process.env.DATABASE_URL
       }
     : null;
 
-// FUNÇÃO AUXILIAR: Captura o erro em formato de texto caso o Google rejeite o acesso
 function fazerRequisicaoHttps(url: string): Promise<any> {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
@@ -27,7 +26,7 @@ function fazerRequisicaoHttps(url: string): Promise<any> {
       res.on("data", (chunk) => { dados += chunk; });
       res.on("end", () => {
         if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
-          reject(new Error("Erro HTTP " + res.statusCode + " retornado pelo Google: " + dados));
+          reject(new Error("Erro HTTP " + res.statusCode + " retornado pelo Google. Corpo da resposta: " + dados));
           return;
         }
 
@@ -54,7 +53,7 @@ function dividirEmLotes<T>(array: T[], tamanho: number): T[][] {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tokenUrl = searchParams.get("token");
-  const tokenSecreto = process.env.CRON_SECRET || "ms_121920eCCLk2978_sec_page_r9";
+  const tokenSecreto = (process.env.CRON_SECRET || "ms_121920eCCLk2978_sec_page_r9").trim();
 
   if (!tokenUrl || tokenUrl !== tokenSecreto) {
     return NextResponse.json({ error: "Acesso Não Autorizado via Token." }, { status: 401 });
@@ -64,9 +63,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Configuração do Banco de Dados ausente no servidor." }, { status: 500 });
   }
 
-  const apiKey = process.env.YOUTUBE_API_KEY?.trim();
+  // Limpa completamente quebras de linha invisíveis vindas do arquivo .env
+  const apiKey = process.env.YOUTUBE_API_KEY?.replace(/[\r\n]+/g, "").trim();
   if (!apiKey) {
-    return NextResponse.json({ error: "A credencial YOUTUBE_API_KEY não foi encontrada." }, { status: 500 });
+    return NextResponse.json({ error: "A credencial YOUTUBE_API_KEY não foi encontrada ou está vazia." }, { status: 500 });
   }
 
   const conexao = await mysql.createConnection(poolConfig);
@@ -85,14 +85,20 @@ export async function GET(request: NextRequest) {
     const lotesDeMusicas = dividirEmLotes<any>(musicas, 50);
 
     for (const lote of lotesDeMusicas) {
-      const novaListaIdsSincronizada = lote.map((m: any) => m.id_video.trim()).join(",");
-      
-      const parametrosYoutube = new URLSearchParams();
-      parametrosYoutube.append("part", "statistics");
-      parametrosYoutube.append("id", novaListaIdsSincronizada);
-      parametrosYoutube.append("key", apiKey);
+      // Filtra espaços e caracteres de quebra de linha dos IDs salvos no Banco
+      const listaIds = lote
+        .map((m: any) => m.id_video.replace(/[\r\n]+/g, "").trim())
+        .filter((id: string) => id.length > 0);
 
-      const urlYoutubeDefinitiva = "https://googleapis.com?" + parametrosYoutube.toString().replace(/%2C/g, ",");
+      if (listaIds.length === 0) continue;
+
+      const novaListaIdsSincronizada = listaIds.join(",");
+      
+      // Montagem limpa e manual da URL do Endpoint
+      const urlYoutubeDefinitiva = `https://googleapis.com{novaListaIdsSincronizada}&key=${apiKey}`;
+
+      // PRINT DE SEGURANÇA: Veja no terminal do VSCode como o NextJS está montando a sua URL!
+      console.log("👉 URL ENVIADA AO GOOGLE:", urlYoutubeDefinitiva);
 
       const dados = await fazerRequisicaoHttps(urlYoutubeDefinitiva);
 
@@ -111,13 +117,11 @@ export async function GET(request: NextRequest) {
         const likes = Number(stats.likeCount || 0);
         const comentarios = Number(stats.commentCount || 0);
 
-        // 1. Atualiza a tabela principal 'musicas'
         await conexao.query(
           "UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?",
           [views, likes, comentarios, idVideo]
         );
 
-        // 2. Alimenta a tabela 'musicas_historico' com a foto atual dos dados
         await conexao.query(
           "INSERT INTO musicas_historico (id_video, views, likes, comentarios, capturado_em) VALUES (?, ?, ?, ?, NOW())",
           [idVideo, views, likes, comentarios]
