@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
       parametrosYoutube.append("id", novaListaIdsSincronizada);
       parametrosYoutube.append("key", apiKey);
 
-      const urlYoutubeDefinitiva = "https://googleapis.com?" + parametrosYoutube.toString();
+      const urlYoutubeDefinitiva = "https://googleapis.com?" + parametrosYoutube.toString().replace(/%2C/g, ",");
 
       const dados = await fazerRequisicaoHttps(urlYoutubeDefinitiva);
 
