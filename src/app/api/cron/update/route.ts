@@ -96,7 +96,9 @@ export async function GET(request: NextRequest) {
       
       // Montagem limpa e manual da URL do Endpoint
       //  COMO DEVE FICAR (Use crases para o JavaScript injetar as variáveis):
-      const urlYoutubeDefinitiva = `https://googleapis.com{novaListaIdsSincronizada}&key=${apiKey}`;
+      // Substitua a linha da urlYoutubeDefinitiva por esta concatenação pura:
+      const urlYoutubeDefinitiva = "https://googleapis.com" + novaListaIdsSincronizada + "&key=" + apiKey;
+
 
 
       // PRINT DE SEGURANÇA: Veja no terminal do VSCode como o NextJS está montando a sua URL!
