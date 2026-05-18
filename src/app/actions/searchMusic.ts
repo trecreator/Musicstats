@@ -116,3 +116,69 @@ export async function registrarVisitaMusica(id_video: string, ip: string): Promi
     [id_video]
   );
 }
+
+export async function listarHistoricoCompleto(id_video: string): Promise<any[]> {
+  const [rows] = await conexao.query<any[]>(
+    `SELECT views, likes, comentarios, capturado_em 
+     FROM musicas_historico 
+     WHERE id_video = ? 
+     ORDER BY capturado_em DESC;`,
+    [id_video]
+  );
+  return rows;
+}
+
+export async function buscarPrimeiroRegistroDoMes(id_video: string): Promise<any | null> {
+  const [rows] = await conexao.query<any[]>(
+    `SELECT views, capturado_em 
+     FROM musicas_historico 
+     WHERE id_video = ? 
+       AND YEAR(capturado_em) = YEAR(CURDATE()) 
+       AND MONTH(capturado_em) = MONTH(CURDATE())
+     ORDER BY capturado_em ASC 
+     LIMIT 1;`,
+    [id_video]
+  );
+  if (!rows || rows.length === 0) return null;
+  return rows[0];
+}
+
+export async function buscarHistoricoOntem(id_video: string): Promise<any | null> {
+  const [rows] = await conexao.query<any[]>(
+    `SELECT views, likes, comentarios, capturado_em 
+     FROM musicas_historico 
+     WHERE id_video = ? 
+       AND capturado_em <= NOW() - INTERVAL 22 HOUR
+     ORDER BY capturado_em DESC 
+     LIMIT 1;`,
+    [id_video]
+  );
+  if (!rows || rows.length === 0) return null;
+  return rows[0];
+}
+
+export async function buscarGanhosOntemLote(ids_video: string[]): Promise<Record<string, number>> {
+  if (ids_video.length === 0) return {};
+
+  const [rows] = await conexao.query<any[]>(
+    `SELECT h1.id_video, h1.views
+     FROM musicas_historico h1
+     INNER JOIN (
+         SELECT id_video, MAX(capturado_em) as max_data
+         FROM musicas_historico
+         WHERE capturado_em <= NOW() - INTERVAL 22 HOUR
+         GROUP BY id_video
+     ) h2 ON h1.id_video = h2.id_video AND h1.capturado_em = h2.max_data
+     WHERE h1.id_video IN (?);`,
+    [ids_video]
+  );
+
+  // Transforma o resultado em um mapa chave-valor para busca instantânea: { "id_video": views_ontem }
+  const mapa: Record<string, number> = {};
+  rows.forEach((row) => {
+    mapa[row.id_video] = row.views;
+  });
+  
+  return mapa;
+}
+

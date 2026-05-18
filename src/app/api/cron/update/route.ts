@@ -19,14 +19,13 @@ const poolConfig = process.env.DATABASE_URL
       }
     : null;
 
-// FUNÇÃO AUXILIAR MELHORADA: Captura o erro em formato de texto caso o Google rejeite o acesso
+// FUNÇÃO AUXILIAR: Captura o erro em formato de texto caso o Google rejeite o acesso
 function fazerRequisicaoHttps(url: string): Promise<any> {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       let dados = "";
       res.on("data", (chunk) => { dados += chunk; });
       res.on("end", () => {
-        // Se o status HTTP não for sucesso (200), joga o erro bruto na tela para sabermos o motivo
         if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
           reject(new Error("Erro HTTP " + res.statusCode + " retornado pelo Google: " + dados));
           return;
@@ -93,7 +92,7 @@ export async function GET(request: NextRequest) {
       parametrosYoutube.append("id", novaListaIdsSincronizada);
       parametrosYoutube.append("key", apiKey);
 
-      const urlYoutubeDefinitiva = "https://www.googleapis.com/youtube/v3/videos?" + parametrosYoutube.toString();
+      const urlYoutubeDefinitiva = "https://googleapis.com?" + parametrosYoutube.toString();
 
       const dados = await fazerRequisicaoHttps(urlYoutubeDefinitiva);
 
@@ -112,10 +111,18 @@ export async function GET(request: NextRequest) {
         const likes = Number(stats.likeCount || 0);
         const comentarios = Number(stats.commentCount || 0);
 
+        // 1. Atualiza a tabela principal 'musicas'
         await conexao.query(
           "UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?",
           [views, likes, comentarios, idVideo]
         );
+
+        // 2. Alimenta a tabela 'musicas_historico' com a foto atual dos dados
+        await conexao.query(
+          "INSERT INTO musicas_historico (id_video, views, likes, comentarios, capturado_em) VALUES (?, ?, ?, ?, NOW())",
+          [idVideo, views, likes, comentarios]
+        );
+
         totalAtualizado++;
       }
     }
@@ -128,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: "[SUCESSO] Sincronização concluída! Total de " + totalAtualizado + " músicas atualizadas via HTTPS." 
+      message: "[SUCESSO] Sincronização concluída! Total de " + totalAtualizado + " músicas atualizadas e registradas no histórico." 
     });
 
   } catch (error: any) {

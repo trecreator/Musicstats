@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-
 import PainelMusicas from './_components/home/PainelMusicas';
-import { buscarMusicasAvancado } from './actions/searchMusic'; // Importação alterada para a nova função
+import { buscarMusicasAvancado, buscarGanhosOntemLote } from './actions/searchMusic'; // Adicionada a nova função em lote
 import { SuavizarNumero } from '@/utils/math';
 
 interface MainPageProps {
@@ -21,8 +20,24 @@ export default async function MainPage({ searchParams }: MainPageProps) {
     const ordemFiltro = params.ordem ?? "views_desc";
 
     // 2. Dispara a busca inteligente unificada no MySQL
-    const musicas = await buscarMusicasAvancado(termoBusca, paginaAtual, 25, ordemFiltro);
+    const musicasOrdinarias = await buscarMusicasAvancado(termoBusca, paginaAtual, 25, ordemFiltro);
     
+    // --- NOVO: BUSCA E INJEÇÃO DOS GANHOS DE ONTEM EM LOTE ---
+    const idsVideos = musicasOrdinarias.map((m) => m.id_video);
+    const mapaHistoricoOntem = await buscarGanhosOntemLote(idsVideos);
+
+    const musicas = musicasOrdinarias.map((musica) => {
+      const viewsOntem = mapaHistoricoOntem[musica.id_video] || 0;
+      // Calcula as views ganhas em 24h: Atual menos a foto de ontem
+      const yesterdayViews = viewsOntem > 0 ? musica.views - viewsOntem : 0;
+
+      return {
+        ...musica,
+        yesterdayViews: yesterdayViews > 0 ? yesterdayViews : 0,
+      };
+    });
+    // --------------------------------------------------------
+
     // 3. Cálculos dinâmicos baseados no resultado atual do banco
     const totalViewsInPage = SuavizarNumero(musicas.reduce((total, musica) => total + musica.views, 0));
     const MusicasEncontradas: number = musicas.length;
@@ -42,7 +57,7 @@ export default async function MainPage({ searchParams }: MainPageProps) {
       {/* 4. Passamos os dados e os estados da URL para o Painel criar os botões e filtros */}
       <div className="p-2 max-w-5xl mx-auto">
         <PainelMusicas 
-          musicasIniciais={musicas} 
+          musicasIniciais={musicas} // Agora envia o objeto com a propriedade yesterdayViews inclusa!
           paginaAtual={paginaAtual}
           ordemAtual={ordemFiltro}
         />

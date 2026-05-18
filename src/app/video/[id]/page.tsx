@@ -7,6 +7,11 @@ import { SuavizarNumero } from "@/utils/math";
 import { calcularYesterdayViews } from "@/services/growthService";
 import { MusicaHistorico } from "@/types/musicHistorico";
 import Link from "next/link";
+import VideoHistoricList  from "@/app/_components/video/VideoHistoricList";
+import { listarHistoricoCompleto } from "@/app/actions/searchMusic";
+import { buscarPrimeiroRegistroDoMes } from "@/app/actions/searchMusic";
+import  VideoMonthViews from "@/app/_components/video/VideoMonthViews";
+
 
 interface VideoPageProps {
   params: Promise<{ id: string }>;
@@ -27,6 +32,8 @@ export default async function VideoPage({ params }: VideoPageProps) {
   // 3. BUSCA OS DADOS ATUALIZADOS NO MYSQL
   const musica = await buscarMusicaPorId(id);
   const historico: MusicaHistorico | null = await buscarHistorioMusica(id);
+  const historicoCompleto = await listarHistoricoCompleto(id); // Lista completa do histórico para o gráfico de evolução
+  const primeiroRegistroDoMes = await buscarPrimeiroRegistroDoMes(id); // Para o gráfico de evolução mensal
   
   // 4. Salvaguardas de segurança contra nulos
   if (!musica) {
@@ -80,6 +87,12 @@ export default async function VideoPage({ params }: VideoPageProps) {
         </Link>
       </h4>
 
+      <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-4 max-w-xl mx-auto pb-4">
+      <Link href="/" className="text-purple-400 hover:text-purple-300 hover:underline ml-1 font-regular text-sm">
+           Back to Homepage
+        </Link>
+      </h5>
+
       {/* Conteúdo Centralizado */}
       <div className="flex flex-col items-center max-w-4xl mx-auto gap-8 mb-16">
         
@@ -95,6 +108,11 @@ export default async function VideoPage({ params }: VideoPageProps) {
             className="w-full h-full object-cover"
           />
         </div>
+
+        <VideoMonthViews 
+          viewsAtuais={musica.views} 
+          primeiroRegistro={primeiroRegistroDoMes} 
+        />
 
         {/* Informações Abaixo do Vídeo */}
         <div className="w-[600px] border border-white/10 bg-white/5 rounded backdrop-blur-md p-6 font-mono">
@@ -143,6 +161,13 @@ export default async function VideoPage({ params }: VideoPageProps) {
 
       </div>
 
+      <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-6 max-w-xl mx-auto"></h5>
+
+      <div className="container mx-auto p-4">
+        <VideoHistoricList dados={historicoCompleto} />
+      </div>
+
+
       {/* Rodapé de Navegação (Agora exibe o número de visitas já atualizado em tempo real) */}
       <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-6 max-w-xl mx-auto">
         Page Visits: {musica.visits} &nbsp;|&nbsp; 
@@ -150,6 +175,9 @@ export default async function VideoPage({ params }: VideoPageProps) {
            Back to Homepage
         </Link>
       </h5>
+
+      
+
 
     </main>
   );
