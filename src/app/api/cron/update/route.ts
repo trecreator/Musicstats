@@ -94,10 +94,9 @@ export async function GET(request: NextRequest) {
 
       const novaListaIdsSincronizada = listaIds.join(",");
       
-      // Montagem limpa e manual da URL do Endpoint
-      //  COMO DEVE FICAR (Use crases para o JavaScript injetar as variáveis):
-      // Substitua a linha da urlYoutubeDefinitiva por esta concatenação pura:
+      
       const urlYoutubeDefinitiva = "https://googleapis.com" + novaListaIdsSincronizada + "&key=" + apiKey;
+
 
 
 
