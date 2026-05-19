@@ -124,8 +124,11 @@ export async function GET(request: NextRequest) {
           const views = Number(stats.viewCount || 0);
           const likes = Number(stats.likeCount || 0);
           const comentarios = Number(stats.commentCount || 0);
-          const publishedAt = item.snippet?.publishedAt || null;
-
+          const publishedAt = item.snippet?.publishedAt
+  ? item.snippet.publishedAt
+      .replace("T", " ")
+      .replace("Z", "")
+  : null;
           await conexao.query(
   "UPDATE musicas SET views = ?, likes = ?, comentarios = ?, published_at = ?, ultima_atualizacao = NOW() WHERE id_video = ?",
   [views, likes, comentarios, publishedAt, idVideo]
