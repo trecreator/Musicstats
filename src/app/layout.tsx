@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "MusicalStats",
   description: "Search for your favorite musics and see them analytics",
   icons: {
-    icon: "/MusicalStatsLogo.png",
+    icon: "/favicon.png",
   },
 };
 

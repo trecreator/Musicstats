@@ -7,36 +7,45 @@ export type Musica = {
   views: number;
   likes: number;
   comentarios: number;
-  published_at: Date | null;
+  published_at: Date | string | null;
   thumbnail: string | null;
-  ultima_atualizacao: Date | null;
+  ultima_atualizacao: Date | string | null;
   visits: number;
 };
 
-export function CalcularIdadeMusica(published_at: Date | null): string
+export function CalcularIdadeMusica(published_at: Date | string | null): string
 {
-
-  let idade: string = "Recently Added";
-  const hoje: Date = new Date();
-
-  if(published_at)
-  {
-
-    const diffTime: number = Math.abs(hoje.getTime() - published_at.getTime());
-    const diffDays: number = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const diffMonths: number = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
-    const diffYears: number = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 365));
-
-    if (diffYears > 0) {
-      idade = `${diffYears}Y`;
-    } else if (diffMonths > 0) {
-      idade = `${diffMonths}M`;
-    } else {
-      idade = `${diffDays}D`;
-    }
-
+  if (!published_at) {
+    return "Unknown";
   }
-  return idade;
+
+  const dataPublicacao = new Date(
+    typeof published_at === "string"
+      ? published_at.replace(" ", "T")
+      : published_at
+  );
+
+  if (isNaN(dataPublicacao.getTime())) {
+    return "Unknown";
+  }
+
+  const hoje = new Date();
+
+  const diffTime = hoje.getTime() - dataPublicacao.getTime();
+
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const diffMonths = Math.floor(diffDays / 30);
+  const diffYears = Math.floor(diffDays / 365);
+
+  if (diffYears >= 1) {
+    return `${diffYears}Y`;
+  }
+
+  if (diffMonths >= 1) {
+    return `${diffMonths}M`;
+  }
+
+  return `${Math.max(diffDays, 0)}D`;
 }
 
 export type MusicaRow = Musica & RowDataPacket;
