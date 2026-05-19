@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       // CONCATENAÇÃO PURA ISOLADA: Protegida de vazamentos ou colas de texto
       
       const urlYoutubeDefinitiva =
-        `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${novaListaIdsSincronizada}&key=${apiKey}`;
+  `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${novaListaIdsSincronizada}&key=${apiKey}`;
 
       // Se o Google disparar erro, a resposta capturará a URL limpa que gerou o problema
       try {
@@ -124,16 +124,12 @@ export async function GET(request: NextRequest) {
           const views = Number(stats.viewCount || 0);
           const likes = Number(stats.likeCount || 0);
           const comentarios = Number(stats.commentCount || 0);
+          const publishedAt = item.snippet?.publishedAt || null;
 
           await conexao.query(
-            "UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?",
-            [views, likes, comentarios, idVideo]
-          );
-
-          await conexao.query(
-            "INSERT INTO musicas_historico (id_video, views, likes, comentarios, capturado_em) VALUES (?, ?, ?, ?, NOW())",
-            [idVideo, views, likes, comentarios]
-          );
+  "UPDATE musicas SET views = ?, likes = ?, comentarios = ?, published_at = ?, ultima_atualizacao = NOW() WHERE id_video = ?",
+  [views, likes, comentarios, publishedAt, idVideo]
+);
 
           totalAtualizado++;
         }
