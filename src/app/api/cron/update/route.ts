@@ -102,8 +102,9 @@ export async function GET(request: NextRequest) {
       const novaListaIdsSincronizada = listaIds.join(",");
       
       // CONCATENAÇÃO PURA ISOLADA: Protegida de vazamentos ou colas de texto
-      const urlBase = "https://googleapis.com";
-      const urlYoutubeDefinitiva = urlBase + novaListaIdsSincronizada + "&key=" + apiKey;
+      
+      const urlYoutubeDefinitiva =
+        `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${novaListaIdsSincronizada}&key=${apiKey}`;
 
       // Se o Google disparar erro, a resposta capturará a URL limpa que gerou o problema
       try {
