@@ -26,10 +26,9 @@ function fazerRequisicaoHttps(url: string): Promise<any> {
       res.on("data", (chunk) => { dados += chunk; });
       res.on("end", () => {
         if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
-          reject(new Error("Erro HTTP " + res.statusCode + " retornado pelo Google. Corpo da resposta: " + dados));
+          reject(new Error("Erro HTTP " + res.statusCode + " retornado pelo Google: " + dados));
           return;
         }
-
         try {
           resolve(JSON.parse(dados));
         } catch (e) {
@@ -51,22 +50,30 @@ function dividirEmLotes<T>(array: T[], tamanho: number): T[][] {
 }
 
 export async function GET(request: NextRequest) {
+  // --- DIAGNÓSTICO ESTREITO DE SINAL DE CONTROLE E ENV VARS ---
+  const validacaoEnv = {
+    DATABASE_CONFIG_EXISTE: !!poolConfig,
+    YOUTUBE_KEY_EXISTE: !!process.env.YOUTUBE_API_KEY,
+    YOUTUBE_KEY_COMPRIMENTO: process.env.YOUTUBE_API_KEY?.length || 0,
+    CRON_SECRET_EXISTE: !!process.env.CRON_SECRET,
+  };
+
   const { searchParams } = new URL(request.url);
   const tokenUrl = searchParams.get("token");
   const tokenSecreto = (process.env.CRON_SECRET || "ms_121920eCCLk2978_sec_page_r9").trim();
 
   if (!tokenUrl || tokenUrl !== tokenSecreto) {
-    return NextResponse.json({ error: "Acesso Não Autorizado via Token." }, { status: 401 });
+    return NextResponse.json({ error: "Acesso Não Autorizado via Token.", debug: validacaoEnv }, { status: 401 });
   }
 
   if (!poolConfig) {
-    return NextResponse.json({ error: "Configuração do Banco de Dados ausente no servidor." }, { status: 500 });
+    return NextResponse.json({ error: "Configuração do Banco de Dados ausente no Vercel.", debug: validacaoEnv }, { status: 500 });
   }
 
-  // Limpa completamente quebras de linha invisíveis vindas do arquivo .env
-  const apiKey = process.env.YOUTUBE_API_KEY?.replace(/[\r\n]+/g, "").trim();
+  // Limpa estritamente caracteres de quebra de linha da chave sem afetar o resto
+  const apiKey = process.env.YOUTUBE_API_KEY?.replace(/[\r\n\s]+/g, "").trim();
   if (!apiKey) {
-    return NextResponse.json({ error: "A credencial YOUTUBE_API_KEY não foi encontrada ou está vazia." }, { status: 500 });
+    return NextResponse.json({ error: "A credencial YOUTUBE_API_KEY está vazia.", debug: validacaoEnv }, { status: 500 });
   }
 
   const conexao = await mysql.createConnection(poolConfig);
@@ -85,71 +92,73 @@ export async function GET(request: NextRequest) {
     const lotesDeMusicas = dividirEmLotes<any>(musicas, 50);
 
     for (const lote of lotesDeMusicas) {
-      // Filtra espaços e caracteres de quebra de linha dos IDs salvos no Banco
+      // Limpa individualmente os IDs para evitar que eles quebrem ou colem na URL base
       const listaIds = lote
-        .map((m: any) => m.id_video.replace(/[\r\n]+/g, "").trim())
+        .map((m: any) => m.id_video.replace(/[\r\n\s]+/g, "").trim())
         .filter((id: string) => id.length > 0);
 
       if (listaIds.length === 0) continue;
 
       const novaListaIdsSincronizada = listaIds.join(",");
       
-      
-      const urlYoutubeDefinitiva = "https://googleapis.com" + novaListaIdsSincronizada + "&key=" + apiKey;
+      // CONCATENAÇÃO PURA ISOLADA: Protegida de vazamentos ou colas de texto
+      const urlBase = "https://googleapis.com";
+      const urlYoutubeDefinitiva = urlBase + novaListaIdsSincronizada + "&key=" + apiKey;
 
+      // Se o Google disparar erro, a resposta capturará a URL limpa que gerou o problema
+      try {
+        const dados = await fazerRequisicaoHttps(urlYoutubeDefinitiva);
 
+        if (dados.error) {
+          throw new Error("[Falha Google API]: " + (dados.error.message || JSON.stringify(dados.error)));
+        }
 
+        if (!dados.items || dados.items.length === 0) {
+          continue;
+        }
 
-      // PRINT DE SEGURANÇA: Veja no terminal do VSCode como o NextJS está montando a sua URL!
-      console.log("👉 URL ENVIADA AO GOOGLE:", urlYoutubeDefinitiva);
+        for (const item of dados.items) {
+          const idVideo = item.id;
+          const stats = item.statistics;
+          const views = Number(stats.viewCount || 0);
+          const likes = Number(stats.likeCount || 0);
+          const comentarios = Number(stats.commentCount || 0);
 
-      const dados = await fazerRequisicaoHttps(urlYoutubeDefinitiva);
+          await conexao.query(
+            "UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?",
+            [views, likes, comentarios, idVideo]
+          );
 
-      if (dados.error) {
-        throw new Error("[Falha Google API]: " + (dados.error.message || JSON.stringify(dados.error)));
-      }
+          await conexao.query(
+            "INSERT INTO musicas_historico (id_video, views, likes, comentarios, capturado_em) VALUES (?, ?, ?, ?, NOW())",
+            [idVideo, views, likes, comentarios]
+          );
 
-      if (!dados.items || dados.items.length === 0) {
-        continue;
-      }
-
-      for (const item of dados.items) {
-        const idVideo = item.id;
-        const stats = item.statistics;
-        const views = Number(stats.viewCount || 0);
-        const likes = Number(stats.likeCount || 0);
-        const comentarios = Number(stats.commentCount || 0);
-
-        await conexao.query(
-          "UPDATE musicas SET views = ?, likes = ?, comentarios = ?, ultima_atualizacao = NOW() WHERE id_video = ?",
-          [views, likes, comentarios, idVideo]
-        );
-
-        await conexao.query(
-          "INSERT INTO musicas_historico (id_video, views, likes, comentarios, capturado_em) VALUES (?, ?, ?, ?, NOW())",
-          [idVideo, views, likes, comentarios]
-        );
-
-        totalAtualizado++;
+          totalAtualizado++;
+        }
+      } catch (reqError: any) {
+        throw new Error("Falha ao consultar URL: " + urlYoutubeDefinitiva + " | Erro Original: " + reqError.message);
       }
     }
 
     await conexao.end();
 
     if (totalAtualizado === 0) {
-      return NextResponse.json({ success: false, error: "Nenhum resultado retornado pelos servidores do YouTube." });
+      return NextResponse.json({ success: false, error: "Nenhum resultado retornado pelos servidores do YouTube.", debug: validacaoEnv });
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: "[SUCESSO] Sincronização concluída! Total de " + totalAtualizado + " músicas atualizadas e registradas no histórico." 
+      message: "[SUCESSO] Sincronização concluída! Total de " + totalAtualizado + " músicas atualizadas.",
+      debug: validacaoEnv
     });
 
   } catch (error: any) {
     if (conexao) await conexao.end();
     return NextResponse.json({ 
       success: false, 
-      error: error?.message || "Ocorreu um erro interno inesperado na rota Cron." 
+      error: error?.message || "Ocorreu um erro interno inesperado na rota.",
+      debug: validacaoEnv
     }, { status: 500 });
   }
 }
