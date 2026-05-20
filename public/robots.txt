@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://musicalstats.com
+
+# Sitemaps
+Sitemap: https://musicalstats.com/sitemap.xml
