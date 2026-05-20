@@ -46,17 +46,17 @@ export default function PainelMusicas({ musicasIniciais, paginaAtual, ordemAtual
 
       {/* CABEÇALHO DE INDICADORES (Alinhamento simétrico com as caixas fixas) */}
       <div className="flex items-center w-full px-4 py-2 font-mono text-[10px] font-bold text-white/30 tracking-wider uppercase select-none border-b border-white/5 mb-1">
-        {/* Espaço morto para pular o número do ranking do card de baixo */}
-        <span className="min-w-[5px] "></span>
-        <span>ID</span>
+        
+        <span className="min-w-[5px]"></span>
+        <span className="hover:text-purple-800 transition-colors duration-300">ID</span>
         <span className="min-w-[20px] mr-3"></span>
-        <span>Title</span>
+        <span className="hover:text-white transition-colors duration-300">Title</span>
 
-        {/* Indicadores fixados na direita combinando com o w-24 e gap-2 do CardVideo */}
+        
         <div className="flex items-center ml-auto gap-2 text-center">
-          <span className="w-24">Views</span>
-          <span className="w-24">Likes</span>
-          <span className="w-24">Age</span>
+          <span className="w-24 hover:text-blue-500 transition-colors duration-300">Views</span>
+          <span className="w-24 hover:text-red-500 transition-colors duration-300">Likes</span>
+          <span className="w-24 hover:text-orange-500 transition-colors duration-300">Age</span>
         </div>
       </div>
 

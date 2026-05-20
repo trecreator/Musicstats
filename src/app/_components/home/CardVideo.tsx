@@ -24,7 +24,7 @@ export default function CardVideo({ musica, posicao }: CardVideoProps) {
 
   return (
     <Link href={`/video/${musica.id_video}`} className="w-full">
-      <div className="flex items-center w-full p-4 mb-1 bg-white/3 border border-purple-900/45 outline outline-1 hover:bg-white/5 hover:border-blue-500/50 hover:outline-blue-500/20 transition-all duration-300">
+      <div className="flex items-center w-full p-4 mb-1 bg-white/1 border border-purple-900/45 rounded outline outline-1 rounded hover:bg-white/5 hover:border-blue-500/50 hover:outline-blue-500/20 rounded transition-all duration-300">
         
         {/* 1. Posição do Ranking */}
         <span className="text-xs font-mono text-purple-400 mr-2 min-w-[25px]">

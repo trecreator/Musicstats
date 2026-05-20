@@ -16,7 +16,7 @@ export type Musica = {
 export function CalcularIdadeMusica(published_at: Date | string | null): string
 {
   if (!published_at) {
-    return "Unknown";
+    return "Recently Added";
   }
 
   const dataPublicacao = new Date(
@@ -26,7 +26,7 @@ export function CalcularIdadeMusica(published_at: Date | string | null): string
   );
 
   if (isNaN(dataPublicacao.getTime())) {
-    return "Unknown";
+    return "Recently Added";
   }
 
   const hoje = new Date();
