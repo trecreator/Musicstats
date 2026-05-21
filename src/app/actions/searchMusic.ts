@@ -141,7 +141,7 @@ export async function listarHistoricoCompleto(id_video: string): Promise<any[]> 
     `SELECT views, likes, comentarios, capturado_em 
      FROM musicas_historico 
      WHERE id_video = ? 
-     ORDER BY capturado_em ASC;`,
+     ORDER BY capturado_em DESC;`,
     [id_video]
   );
   return rows;
