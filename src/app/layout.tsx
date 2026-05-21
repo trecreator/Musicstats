@@ -5,6 +5,9 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import GuiaFixa from "@/app/_components/home/GuiaFixa"
 
+// Importa a versão direto do seu package.json
+import { version } from "@/../package.json";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -30,23 +33,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <GuiaFixa></GuiaFixa>
         {children}
-
 
         <Analytics />
         <SpeedInsights />
         
+        {/* Versão automatizada aqui */}
         <div className="fixed bottom-4 right-4 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-xs text-white/50 font-mono">
-          <p>MusicalStats v1.0.0</p>
+          <p>MusicalStats v{version}</p>
         </div>
 
         <footer className="w-full py-8 mt-12 border-t border-white/5 text-center font-mono text-xs text-white/30">
           <p>© {new Date().getFullYear()} MusicalStats. All rights reserved.</p>
         </footer>
-
-
       </body>
     </html>
   );

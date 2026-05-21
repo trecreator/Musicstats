@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build && next-sitemap",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "version": "npm run build && git add -A",
+    "postversion": "git push && git push --tags"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

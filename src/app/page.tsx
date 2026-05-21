@@ -32,12 +32,19 @@ const ultimaAtualizacao = await buscarUltimaAtualizacao();
       // Calcula as views ganhas em 24h: Atual menos a foto de ontem
       const yesterdayViews = viewsOntem > 0 ? musica.views - viewsOntem : 0;
 
+       
+
+
       return {
         ...musica,
         yesterdayViews: yesterdayViews > 0 ? yesterdayViews : 0,
       };
     });
     // --------------------------------------------------------
+
+    const topViewedToday = [...musicas]
+    .sort((a, b) => b.yesterdayViews - a.yesterdayViews)
+    .slice(0, 3);
 
     // 3. Cálculos dinâmicos baseados no resultado atual do banco
     const totalViewsInPage = SuavizarNumero(musicas.reduce((total, musica) => total + musica.views, 0));
@@ -52,6 +59,24 @@ const ultimaAtualizacao = await buscarUltimaAtualizacao();
               <> </>here
         </Link>
         </p>
+
+        <p className="mt-4 text-white font-semibold">
+  Most viewed musics today:
+</p>
+
+{topViewedToday.map((musica, index) => (
+  <p key={musica.id_video}>
+    {index + 1}.{" "}
+    <Link
+      href={`/video/${musica.id_video}`}
+      className="text-purple-400 hover:underline"
+    >
+      {musica.titulo}
+    </Link>{" "}
+    - {SuavizarNumero(musica.yesterdayViews)} views
+  </p>
+))}
+
       </div>
 
       {/* Exibe a contagem de músicas dinâmica baseada na busca/página */}

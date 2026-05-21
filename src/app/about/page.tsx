@@ -37,7 +37,7 @@ export default function AboutPage() {
       <section style={{ marginBottom: '30px', marginTop: '20px' }}>
         <h2 style={{ fontSize: '20px', color: '#a78bfa' }}>1. About the Platform & Architecture</h2>
         <p style={{ color: '#cbd5e1' }}>
-          This platform is an independent music statistics aggregator designed to help users track, analyze, and visualize global music trends. Our system utilizes a highly secure and scalable cloud infrastructure powered by a dedicated <strong>Railway Database</strong> to ensure high availability and fast performance when processing public metrics.
+          This platform is an independent music statistics aggregator designed to help users track, analyze, and visualize global music trends. Our system utilizes a highly secure and scalable cloud infrastructure powered by a dedicated <strong>Aiven Database</strong> to ensure high availability and fast performance when processing public metrics.
         </p>
       </section>
 

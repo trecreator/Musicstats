@@ -24,7 +24,7 @@ export default function CardVideo({ musica, posicao }: CardVideoProps) {
 
   return (
     <Link href={`/video/${musica.id_video}`} className="w-full">
-      <div className="flex items-center w-full p-4 mb-1 bg-white/1 border border-purple-900/45 rounded outline outline-1 rounded hover:bg-white/5 hover:border-blue-500/50 hover:outline-blue-500/20 rounded transition-all duration-300">
+      <div className="flex items-center w-full p-2 mb-1 bg-purple-500/2 border border-purple-900/45 rounded outline outline-1 rounded hover:bg-white/5 hover:border-white/50 hover:outline-blue-500/20 rounded transition-all duration-300 mb-5">
         
         {/* 1. Posição do Ranking */}
         <span className="text-xs font-mono text-purple-400 mr-2 min-w-[25px]">
@@ -33,7 +33,7 @@ export default function CardVideo({ musica, posicao }: CardVideoProps) {
 
         {/* 2. Área do Título Bloqueada: Não deixa o texto empurrar os vizinhos */}
         <div className="w-[220px] md:w-[320px] shrink-0 truncate pr-4">
-          <h2 className="font-semibold text-white/90 tracking-wide text-sm inline hover:text-blue-200 transition-colors duration-300">
+          <h2 className="font-semibold text-white/90 tracking-wide text-sm inline hover:text-white transition-colors duration-300">
             {musica.titulo || "Sem título"}
           </h2>
         </div>
@@ -48,7 +48,7 @@ export default function CardVideo({ musica, posicao }: CardVideoProps) {
           
           {/* Caixinha de Views */}
           <span 
-            className="w-24 py-1 text-center bg-white/0 border border-white/10 hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all duration-300 tooltip cursor-default" 
+            className="w-24 py-1 text-center bg-white/0 border border-white/10 rounded hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all duration-300 tooltip cursor-default" 
             title="Views"
           >
             {views}
@@ -56,7 +56,7 @@ export default function CardVideo({ musica, posicao }: CardVideoProps) {
 
           {/* Caixinha de Likes */}
           <span 
-            className="w-24 py-1 text-center bg-white/0 border border-white/10 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition-all duration-300 tooltip cursor-default" 
+            className="w-24 py-1 text-center bg-white/0 border border-white/10 rounded hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition-all duration-300 tooltip cursor-default" 
             title="Likes"
           >
             {likes}
@@ -64,7 +64,7 @@ export default function CardVideo({ musica, posicao }: CardVideoProps) {
 
           {/* Caixinha de Idade */}
           <span 
-            className="w-24 py-1 text-center bg-white/0 border border-white/10 hover:text-orange-400/80 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all duration-300 tooltip cursor-default" 
+            className="w-24 py-1 text-center bg-white/0 border border-white/10 rounded hover:text-orange-400/80 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all duration-300 tooltip cursor-default" 
             title="Age"
           >
             {idade}
