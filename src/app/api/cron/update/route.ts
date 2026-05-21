@@ -146,7 +146,7 @@ await conexao.query(
 
 totalAtualizado++;
 
-          totalAtualizado++;
+        
         }
       } catch (reqError: any) {
         throw new Error("Falha ao consultar URL: " + urlYoutubeDefinitiva + " | Erro Original: " + reqError.message);
