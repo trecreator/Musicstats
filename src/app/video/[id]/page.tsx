@@ -211,6 +211,13 @@ export default async function VideoPage({ params }: VideoPageProps) {
 
       </div>
 
+      {/* RODAPÉ */}
+      <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-6 max-w-xl mx-auto">
+        
+        
+        </h5>
+
+
       {/* HISTÓRICO */}
       <div className="container mx-auto p-4">
         <VideoHistoricList dados={historicoCompleto} />

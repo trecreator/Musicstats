@@ -234,3 +234,15 @@ export async function buscarUltimaAtualizacao(): Promise<string | null> {
     timeStyle: "medium",
   }).format(new Date(rows[0].ultima_atualizacao));
 }
+
+export async function buscarTodosIdsVideos(): Promise<{ id_video: string }[]> {
+  const [rows] = await conexao.query<any[]>(
+    `
+    SELECT id_video
+    FROM musicas
+    WHERE views > 0;
+    `
+  );
+
+  return rows;
+}
