@@ -30,7 +30,7 @@ export default function AboutPage() {
       </div>
 
       <h1 style={{ borderBottom: '2px solid rgba(255, 255, 255, 0.1)', paddingBottom: '10px', fontSize: '28px', color: '#ffffff' }}>
-        About, Data Methodology & Privacy
+        About, Data Methodology & Privacy Policy
       </h1>
 
       {/* SEÇÃO 1: SOBRE E INFRAESTRUTURA */}

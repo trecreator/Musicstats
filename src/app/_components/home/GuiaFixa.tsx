@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import BarraBusca from "./BarraDePesquisaMusicas";
 import React from "react";
 import { InfoPageButton } from "./InfoPageButton";
+import { InfoPageYoutubeButton }  from "./InfoPageYotubeButton";
 
 export default function GuiaFixa() {
     return (
@@ -26,6 +27,12 @@ export default function GuiaFixa() {
                         <div className="text-sm">
                             <InfoPageButton />
                         </div>
+
+                        <div className="text-sm">
+                            <InfoPageYoutubeButton />
+                        </div>
+
+
                     </div>
 
                      <div className="flex-1 md:flex-initial md:max-w-md w-full md:ml-auto md:mr-1">

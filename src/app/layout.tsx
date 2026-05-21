@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import GuiaFixa from "@/app/_components/home/GuiaFixa"
 
 const geistSans = Geist({
@@ -35,7 +36,8 @@ export default function RootLayout({
 
 
         <Analytics />
-
+        <SpeedInsights />
+        
         <div className="fixed bottom-4 right-4 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-xs text-white/50 font-mono">
           <p>MusicalStats v1.0.0</p>
         </div>
