@@ -130,9 +130,21 @@ export async function GET(request: NextRequest) {
       .replace("Z", "")
   : null;
           await conexao.query(
-  "UPDATE musicas SET views = ?, likes = ?, comentarios = ?, published_at = ?, ultima_atualizacao = NOW() WHERE id_video = ?",
+  `UPDATE musicas 
+   SET views = ?, likes = ?, comentarios = ?, published_at = ?, ultima_atualizacao = NOW() 
+   WHERE id_video = ?`,
   [views, likes, comentarios, publishedAt, idVideo]
 );
+
+// SALVA SNAPSHOT HISTÓRICO
+await conexao.query(
+  `INSERT INTO musicas_historico 
+  (id_video, views, likes, comentarios)
+  VALUES (?, ?, ?, ?)`,
+  [idVideo, views, likes, comentarios]
+);
+
+totalAtualizado++;
 
           totalAtualizado++;
         }

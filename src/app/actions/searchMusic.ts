@@ -42,14 +42,26 @@ export async function buscarMusicasAvancado(
   limite: number = 25,
   ordenacao: string = "views_desc"
 ) {
-  const limiteInt = Math.floor(Number(limite));
-  const inicioInt = Math.floor((Number(pagina) - 1) * limiteInt);
+  const limiteInt = Math.min(Math.max(Math.floor(Number(limite)), 1), 100);
+  const paginaInt = Math.max(Math.floor(Number(pagina)), 1);
+  const inicioInt = (paginaInt - 1) * limiteInt;
   
   const parametros: any[] = [];
-  let sql = `SELECT * FROM musicas WHERE 1=1`;
+  let sql = `SELECT 
+  id_video,
+  titulo,
+  url_video,
+  views,
+  likes,
+  comentarios,
+  published_at,
+  thumbnail,
+  ultima_atualizacao,
+  visits
+  FROM musicas WHERE views > 0`;
 
   if (busca.trim()) {
-    sql += ` AND titulo LIKE ? AND views != 0`; 
+    sql += ` AND titulo LIKE ?`; 
     parametros.push(`%${busca}%`);
   }
 
@@ -84,13 +96,20 @@ export async function buscarTags(id_video: string) {
   return rows;
 }
 
-// --- AJUSTADO: Retorna explicitamente a primeira linha do array ou null se estiver vazio ---
-export async function buscarHistorioMusica(id_video: string): Promise<MusicaHistorico | null> {
+export async function buscarHistoricoMusica(id_video: string): Promise<MusicaHistorico | null> {
   const [rows] = await conexao.query<MusicaHistoricoRow[]>(
-    `SELECT id_video, views, likes, comentarios, capturado_em FROM musicas_historico WHERE id_video = ? LIMIT 1;`,
+    `
+    SELECT id_video, views, likes, comentarios, capturado_em
+    FROM musicas_historico
+    WHERE id_video = ?
+    ORDER BY capturado_em DESC
+    LIMIT 1;
+    `,
     [id_video]
   );
+
   if (!rows || rows.length === 0) return null;
+
   return rows[0];
 }
 
@@ -99,7 +118,7 @@ export async function registrarVisitaMusica(id_video: string, ip: string): Promi
 
   const [rows] = await conexao.query<any[]>(
     `SELECT id FROM musicas_visitas_log 
-     WHERE id_video = ? AND ip_usuario = ? AND data_acesso = CURDATE() 
+     WHERE id_video = ? AND ip_usuario = ? AND data_acesso = UTC_DATE() 
      LIMIT 1`,
     [id_video, ip]
   );
@@ -107,7 +126,7 @@ export async function registrarVisitaMusica(id_video: string, ip: string): Promi
   if (rows.length > 0) return;
 
   await conexao.query(
-    `INSERT INTO musicas_visitas_log (id_video, ip_usuario, data_acesso) VALUES (?, ?, CURDATE())`,
+    `INSERT INTO musicas_visitas_log (id_video, ip_usuario, data_acesso) VALUES (?, ?, UTC_DATE())`,
     [id_video, ip]
   );
 
@@ -122,7 +141,7 @@ export async function listarHistoricoCompleto(id_video: string): Promise<any[]> 
     `SELECT views, likes, comentarios, capturado_em 
      FROM musicas_historico 
      WHERE id_video = ? 
-     ORDER BY capturado_em DESC;`,
+     ORDER BY capturado_em ASC;`,
     [id_video]
   );
   return rows;
@@ -130,55 +149,88 @@ export async function listarHistoricoCompleto(id_video: string): Promise<any[]> 
 
 export async function buscarPrimeiroRegistroDoMes(id_video: string): Promise<any | null> {
   const [rows] = await conexao.query<any[]>(
-    `SELECT views, capturado_em 
-     FROM musicas_historico 
-     WHERE id_video = ? 
-       AND YEAR(capturado_em) = YEAR(CURDATE()) 
-       AND MONTH(capturado_em) = MONTH(CURDATE())
-     ORDER BY capturado_em ASC 
-     LIMIT 1;`,
+    `
+    SELECT views, capturado_em
+    FROM musicas_historico
+    WHERE id_video = ?
+      AND capturado_em >= DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-01')
+      AND capturado_em < DATE_FORMAT(UTC_TIMESTAMP() + INTERVAL 1 MONTH, '%Y-%m-01')
+    ORDER BY capturado_em ASC
+    LIMIT 1;
+    `,
     [id_video]
   );
+
   if (!rows || rows.length === 0) return null;
+
   return rows[0];
 }
 
 export async function buscarHistoricoOntem(id_video: string): Promise<any | null> {
   const [rows] = await conexao.query<any[]>(
-    `SELECT views, likes, comentarios, capturado_em 
-     FROM musicas_historico 
-     WHERE id_video = ? 
-       AND capturado_em <= NOW() - INTERVAL 22 HOUR
-     ORDER BY capturado_em DESC 
-     LIMIT 1;`,
+    `
+    SELECT views, likes, comentarios, capturado_em
+    FROM musicas_historico
+    WHERE id_video = ?
+      AND capturado_em < UTC_DATE()
+    ORDER BY capturado_em DESC
+    LIMIT 1;
+    `,
     [id_video]
   );
-  if (!rows || rows.length === 0) return null;
+
+  if (!rows || rows.length === 0) {
+    return null;
+  }
+
   return rows[0];
 }
 
 export async function buscarGanhosOntemLote(ids_video: string[]): Promise<Record<string, number>> {
   if (ids_video.length === 0) return {};
 
+  const placeholders = ids_video.map(() => "?").join(",");
+
   const [rows] = await conexao.query<any[]>(
-    `SELECT h1.id_video, h1.views
-     FROM musicas_historico h1
-     INNER JOIN (
-         SELECT id_video, MAX(capturado_em) as max_data
-         FROM musicas_historico
-         WHERE capturado_em <= NOW() - INTERVAL 22 HOUR
-         GROUP BY id_video
-     ) h2 ON h1.id_video = h2.id_video AND h1.capturado_em = h2.max_data
-     WHERE h1.id_video IN (?);`,
-    [ids_video]
+    `
+    SELECT h1.id_video, h1.views
+    FROM musicas_historico h1
+    INNER JOIN (
+        SELECT id_video, MAX(capturado_em) as max_data
+        FROM musicas_historico
+        WHERE capturado_em < UTC_DATE()
+        GROUP BY id_video
+    ) h2 
+      ON h1.id_video = h2.id_video 
+     AND h1.capturado_em = h2.max_data
+    WHERE h1.id_video IN (${placeholders});
+    `,
+    ids_video
   );
 
-  // Transforma o resultado em um mapa chave-valor para busca instantânea: { "id_video": views_ontem }
   const mapa: Record<string, number> = {};
+
   rows.forEach((row) => {
     mapa[row.id_video] = row.views;
   });
-  
+
   return mapa;
 }
 
+export async function buscarUltimaAtualizacao(): Promise<string | null> {
+  const [rows] = await conexao.query<any[]>(
+    `
+    SELECT MAX(ultima_atualizacao) as ultima_atualizacao
+    FROM musicas;
+    `
+  );
+
+  if (!rows || rows.length === 0 || !rows[0].ultima_atualizacao) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "medium",
+  }).format(new Date(rows[0].ultima_atualizacao));
+}
