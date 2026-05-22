@@ -223,20 +223,24 @@ export default async function VideoPage({ params }: VideoPageProps) {
         
         </h5>
 
-        {previsaoViews && (
+        {previsaoViews.success ? (
   <p className="text-center text-sm text-white/70 font-mono mb-4">
     Expected to hit{" "}
     <span className="text-purple-400">
-      {SuavizarNumero(previsaoViews.milestone)}
+      {SuavizarNumero(previsaoViews.milestone!)}
     </span>{" "}
     views on{" "}
     <span className="text-purple-400">
-      {previsaoViews.predictedDate.toLocaleDateString("en-US", {
+      {previsaoViews.predictedDate!.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
       })}
     </span>
+  </p>
+) : (
+  <p className="text-center text-sm text-white/40 font-mono mb-4">
+    {previsaoViews.message}
   </p>
 )}
 

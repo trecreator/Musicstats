@@ -1,9 +1,12 @@
 interface PredictionResult {
-  milestone: number;
-  predictedDate: Date;
-  averageDailyGain: number;
-  remainingViews: number;
-  remainingDays: number;
+  success: boolean;
+  message?: string;
+
+  milestone?: number;
+  predictedDate?: Date;
+  averageDailyGain?: number;
+  remainingViews?: number;
+  remainingDays?: number;
 }
 
 interface HistoricoItem {
@@ -14,11 +17,14 @@ interface HistoricoItem {
 export function calcularPrevisaoViews(
   viewsAtuais: number,
   historico: HistoricoItem[]
-): PredictionResult | null {
+): PredictionResult {
 
   // Precisa de pelo menos 4 snapshots
   if (!historico || historico.length < 4) {
-    return null;
+    return {
+      success: false,
+      message: "Cannot estimate due to insufficient historical data.",
+    };
   }
 
   // Ordena do mais antigo para o mais recente
@@ -43,7 +49,10 @@ export function calcularPrevisaoViews(
 
   // Precisa de pelo menos 3 ganhos válidos
   if (ganhosDiarios.length < 3) {
-    return null;
+    return {
+      success: false,
+      message: "Cannot estimate due to insufficient historical data.",
+    };
   }
 
   // Usa apenas os últimos 7 ganhos
@@ -60,6 +69,14 @@ export function calcularPrevisaoViews(
     corteSuperior
   );
 
+  // Segurança extra
+  if (ganhosFiltrados.length === 0) {
+    return {
+      success: false,
+      message: "Cannot estimate due to unstable historical growth.",
+    };
+  }
+
   // Média suavizada
   const mediaDiaria =
     ganhosFiltrados.reduce((acc, n) => acc + n, 0) /
@@ -67,7 +84,10 @@ export function calcularPrevisaoViews(
 
   // Growth muito baixo
   if (mediaDiaria < 1000) {
-    return null;
+    return {
+      success: false,
+      message: "Cannot estimate due to low daily growth.",
+    };
   }
 
   // Próximo milestone estilo Kworb
@@ -76,14 +96,20 @@ export function calcularPrevisaoViews(
   const remainingViews = milestone - viewsAtuais;
 
   if (remainingViews <= 0) {
-    return null;
+    return {
+      success: false,
+      message: "Cannot estimate a realistic milestone date.",
+    };
   }
 
   const remainingDays = Math.ceil(remainingViews / mediaDiaria);
 
   // Limite de previsão
   if (remainingDays > 1825) {
-    return null;
+    return {
+      success: false,
+      message: "Cannot estimate a realistic milestone date.",
+    };
   }
 
   const predictedDate = new Date();
@@ -93,6 +119,7 @@ export function calcularPrevisaoViews(
   );
 
   return {
+    success: true,
     milestone,
     predictedDate,
     averageDailyGain: Math.round(mediaDiaria),

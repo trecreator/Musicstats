@@ -1,6 +1,8 @@
 import { MetadataRoute } from 'next';
 import { buscarTodosIdsVideos } from './actions/searchMusic';
 
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const videos = await buscarTodosIdsVideos();
@@ -18,20 +20,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1,
-    },
-
-    {
-      url: 'https://musicalstats.com/about',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-
-    {
-      url: 'https://musicalstats.com/contact',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
     },
 
     ...videoUrls,
