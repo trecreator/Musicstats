@@ -186,24 +186,38 @@ export async function buscarHistoricoOntem(id_video: string): Promise<any | null
   return rows[0];
 }
 
-export async function buscarGanhosOntemLote(ids_video: string[]): Promise<Record<string, number>> {
+export async function buscarGanhosOntemLote(
+  ids_video: string[]
+): Promise<Record<string, number>> {
+
   if (ids_video.length === 0) return {};
 
   const placeholders = ids_video.map(() => "?").join(",");
 
   const [rows] = await conexao.query<any[]>(
     `
-    SELECT h1.id_video, h1.views
-    FROM musicas_historico h1
+    SELECT h.id_video, h.views
+    FROM musicas_historico h
     INNER JOIN (
-        SELECT id_video, MAX(capturado_em) as max_data
-        FROM musicas_historico
-        WHERE capturado_em < UTC_DATE()
+        SELECT 
+            id_video,
+            MAX(capturado_em) AS capturado_em
+        FROM (
+            SELECT
+                id_video,
+                capturado_em,
+                ROW_NUMBER() OVER (
+                    PARTITION BY id_video
+                    ORDER BY capturado_em DESC
+                ) AS rn
+            FROM musicas_historico
+            WHERE id_video IN (${placeholders})
+        ) ranked
+        WHERE rn = 2
         GROUP BY id_video
-    ) h2 
-      ON h1.id_video = h2.id_video 
-     AND h1.capturado_em = h2.max_data
-    WHERE h1.id_video IN (${placeholders});
+    ) ultimos
+      ON h.id_video = ultimos.id_video
+     AND h.capturado_em = ultimos.capturado_em;
     `,
     ids_video
   );
