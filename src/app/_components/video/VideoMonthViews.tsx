@@ -34,7 +34,7 @@ export default function VideoMonthViews({ viewsAtuais, primeiroRegistro }: Video
       <div className="flex justify-between items-center text-sm">
         <div className="flex flex-col">
           <span className="text-white/50 text-xs uppercase font-bold tracking-wider">Views This Month</span>
-          <span className="text-white/30 text-xxs mt-0.5">Counting since: {dataInicio}</span>
+          <span className="text-white/30 text-xxs mt-0.5">Counting since: {dataInicio} DD/MM/YYYY</span>
         </div>
         <span className="text-green-400 font-bold text-lg">
           +{viewsGanhasNoMes.toLocaleString("pt-BR")}

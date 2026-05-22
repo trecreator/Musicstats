@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { headers } from "next/headers";
 import Link from "next/link";
+import { calcularPrevisaoViews } from "@/utils/predictions";
 
 import {
   registrarVisitaMusica,
@@ -91,6 +92,11 @@ export default async function VideoPage({ params }: VideoPageProps) {
       </main>
     );
   }
+
+  const previsaoViews = calcularPrevisaoViews(
+  musica.views,
+  historicoCompleto
+  );
 
   return (
     <main className="pt-[120px] min-h-screen bg-purple-900/5 text-white p-6 font-mono">
@@ -210,6 +216,29 @@ export default async function VideoPage({ params }: VideoPageProps) {
         </div>
 
       </div>
+
+      {/* RODAPÉ */}
+      <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-6 max-w-xl mx-auto">
+        
+        
+        </h5>
+
+        {previsaoViews && (
+  <p className="text-center text-sm text-white/70 font-mono mb-4">
+    Expected to hit{" "}
+    <span className="text-purple-400">
+      {SuavizarNumero(previsaoViews.milestone)}
+    </span>{" "}
+    views on{" "}
+    <span className="text-purple-400">
+      {previsaoViews.predictedDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })}
+    </span>
+  </p>
+)}
 
       {/* RODAPÉ */}
       <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-6 max-w-xl mx-auto">
