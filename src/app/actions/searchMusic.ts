@@ -166,15 +166,26 @@ export async function buscarPrimeiroRegistroDoMes(id_video: string): Promise<any
   return rows[0];
 }
 
-export async function buscarHistoricoOntem(id_video: string): Promise<any | null> {
+export async function buscarHistoricoOntem(
+  id_video: string
+): Promise<any | null> {
+
   const [rows] = await conexao.query<any[]>(
     `
     SELECT views, likes, comentarios, capturado_em
-    FROM musicas_historico
-    WHERE id_video = ?
-      AND capturado_em < UTC_DATE()
-    ORDER BY capturado_em DESC
-    LIMIT 1;
+    FROM (
+        SELECT
+            views,
+            likes,
+            comentarios,
+            capturado_em,
+            ROW_NUMBER() OVER (
+                ORDER BY capturado_em DESC
+            ) AS rn
+        FROM musicas_historico
+        WHERE id_video = ?
+    ) ranked
+    WHERE rn = 2;
     `,
     [id_video]
   );
