@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -136,6 +136,7 @@ export default async function VideoPage({ params }: VideoPageProps) {
         {/* PLAYER */}
         <div className="w-[600px] h-[337.5px] overflow-hidden rounded border border-white/15 bg-black shadow-2xl shadow-purple-950/20">
           <iframe
+            loading="lazy"
             width={600}
             height={337.5}
             src={urlEmbedFinal}

@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 import PainelMusicas from './_components/home/PainelMusicas';
 import { buscarMusicasAvancado, buscarGanhosOntemLote, buscarUltimaAtualizacao } from './actions/searchMusic'; // Adicionada a nova função em lote
