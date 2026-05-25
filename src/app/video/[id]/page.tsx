@@ -195,15 +195,15 @@ export default async function VideoPage({ params }: VideoPageProps) {
             <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
               <span className="text-white/50">Total Comments</span>
               <span className="text-purple-400 font-semibold">
-                {commentsSuavizados}
+                {commentsSuavizados === " " ? "Hidden by artist" : commentsSuavizados}
               </span>
             </div>
 
             <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
               <span className="text-white/50">New Comments Yesterday</span>
               <span className="text-purple-300 font-semibold">
-                {yesterdayComments >= 0 ? "+" : "-"}
-                {Math.abs(yesterdayComments).toLocaleString()}
+                {commentsSuavizados === " " ? " " : yesterdayComments >= 0 ? "+" : "-"}
+                {commentsSuavizados === " " ? "Hidden by artist" :Math.abs(yesterdayComments).toLocaleString()}
               </span>
             </div>
 
