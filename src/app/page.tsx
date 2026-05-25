@@ -79,6 +79,20 @@ const ultimaAtualizacao = await buscarUltimaAtualizacao();
 
       </div>
 
+      <div className="p-3 max-w-5xl mx-auto text-sm text-white/80 font-mono">
+
+      <p className="text-white font-semibold">
+        Today most viewed musics complete list:  <> </>
+        <Link
+          href="/TodayMostViewedList"
+          className="text-purple-400 hover:underline"
+        >
+          list here
+        </Link>
+      </p>
+
+      </div>
+
       {/* Exibe a contagem de músicas dinâmica baseada na busca/página */}
       <div className="p-3 max-w-5xl mx-auto text-sm text-white/80 font-mono">
         {MusicasEncontradas} listed musics on this page | total views in this page: {totalViewsInPage}

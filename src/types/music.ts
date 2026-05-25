@@ -11,6 +11,7 @@ export type Musica = {
   thumbnail: string | null;
   ultima_atualizacao: Date | string | null;
   visits: number;
+  duration: string | "Cannot find duration";
 };
 
 export function CalcularIdadeMusica(published_at: Date | string | null): string

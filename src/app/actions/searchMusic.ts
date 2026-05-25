@@ -81,12 +81,13 @@ export async function buscarMusicasAvancado(
 // --- AJUSTADO: Retorna explicitamente a primeira linha do array ou null se estiver vazio ---
 export async function buscarMusicaPorId(id_video: string): Promise<Musica | null> {
   const [rows] = await conexao.query<MusicaRow[]>(
-    `SELECT id_video, titulo, url_video, views, likes, comentarios, published_at, thumbnail, ultima_atualizacao, visits FROM musicas WHERE id_video = ? LIMIT 1`,
+    `SELECT id_video, titulo, url_video, views, likes, comentarios, published_at, thumbnail, ultima_atualizacao, visits, duration FROM musicas WHERE id_video = ? LIMIT 1`,
     [id_video]
   );
   if (!rows || rows.length === 0) return null;
   return rows[0]; 
 }
+
 
 export async function buscarTags(id_video: string) {
   const [rows] = await conexao.query<any[]>(
@@ -269,5 +270,33 @@ export async function buscarTodosIdsVideos(): Promise<{ id_video: string }[]> {
     `
   );
 
+  return rows;
+}
+
+export async function buscarMaisVistasHoje(): Promise<any[]> {
+  const [rows] = await conexao.query<any[]>(
+    `SELECT 
+        m.id_video, 
+        m.titulo, 
+        -- Subtrai as views atuais das views do segundo registro mais recente (rn = 2)
+        (CAST(m.views AS SIGNED) - COALESCE(CAST(h.views AS SIGNED), CAST(m.views AS SIGNED))) AS yesterdayViews
+     FROM musicas m
+     LEFT JOIN (
+        -- Seleciona exatamente o segundo registro mais recente de cada vídeo no histórico
+        SELECT id_video, views
+        FROM (
+            SELECT 
+                id_video, 
+                views,
+                ROW_NUMBER() OVER (
+                    PARTITION BY id_video 
+                    ORDER BY capturado_em DESC
+                ) AS rn
+            FROM musicas_historico
+        ) ranked
+        WHERE rn = 2
+     ) h ON m.id_video = h.id_video
+     ORDER BY yesterdayViews DESC`
+  );
   return rows;
 }

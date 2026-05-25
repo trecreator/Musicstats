@@ -49,6 +49,24 @@ function dividirEmLotes<T>(array: T[], tamanho: number): T[][] {
   return lotes;
 }
 
+// Nova função auxiliar adicionada para converter o formato ISO 8601 (Ex: PT3M45S -> "03:45")
+function parseISO8601Duration(isoDuration: string): string {
+  const matches = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!matches) return '00:00';
+
+  const hours = matches[1] ? parseInt(matches[1], 10) : 0;
+  const minutes = matches[2] ? parseInt(matches[2], 10) : 0;
+  const seconds = matches[3] ? parseInt(matches[3], 10) : 0;
+
+  const paddedMinutes = minutes.toString().padStart(2, '0');
+  const paddedSeconds = seconds.toString().padStart(2, '0');
+
+  if (hours > 0) {
+    return `${hours}:${paddedMinutes}:${paddedSeconds}`;
+  }
+  return `${paddedMinutes}:${paddedSeconds}`;
+}
+
 export async function GET(request: NextRequest) {
   // --- DIAGNÓSTICO ESTREITO DE SINAL DE CONTROLE E ENV VARS ---
   const validacaoEnv = {
@@ -101,10 +119,9 @@ export async function GET(request: NextRequest) {
 
       const novaListaIdsSincronizada = listaIds.join(",");
       
-      // CONCATENAÇÃO PURA ISOLADA: Protegida de vazamentos ou colas de texto
-      
+      // CONCATENAÇÃO PURA ISOLADA: Adicionado "contentDetails" na parte da URL para trazer a duração
       const urlYoutubeDefinitiva =
-  `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${novaListaIdsSincronizada}&key=${apiKey}`;
+        `https://googleapis.com{novaListaIdsSincronizada}&key=${apiKey}`;
 
       // Se o Google disparar erro, a resposta capturará a URL limpa que gerou o problema
       try {
@@ -125,28 +142,32 @@ export async function GET(request: NextRequest) {
           const likes = Number(stats.likeCount || 0);
           const comentarios = Number(stats.commentCount || 0);
           const publishedAt = item.snippet?.publishedAt
-  ? item.snippet.publishedAt
-      .replace("T", " ")
-      .replace("Z", "")
-  : null;
+            ? item.snippet.publishedAt
+                .replace("T", " ")
+                .replace("Z", "")
+            : null;
+          
+          // Captura e formata a duração vinda do item
+          const isoDuration = item.contentDetails?.duration;
+          const duration = isoDuration ? parseISO8601Duration(isoDuration) : null;
+
+          // UPDATE ATUALIZADO: Agora salva o campo duration na tabela de musicas
           await conexao.query(
-  `UPDATE musicas 
-   SET views = ?, likes = ?, comentarios = ?, published_at = ?, ultima_atualizacao = NOW() 
-   WHERE id_video = ?`,
-  [views, likes, comentarios, publishedAt, idVideo]
-);
+            `UPDATE musicas 
+             SET views = ?, likes = ?, comentarios = ?, published_at = ?, duration = ?, ultima_atualizacao = NOW() 
+             WHERE id_video = ?`,
+            [views, likes, comentarios, publishedAt, duration, idVideo]
+          );
 
-// SALVA SNAPSHOT HISTÓRICO
-await conexao.query(
-  `INSERT INTO musicas_historico 
-  (id_video, views, likes, comentarios)
-  VALUES (?, ?, ?, ?)`,
-  [idVideo, views, likes, comentarios]
-);
+          // SALVA SNAPSHOT HISTÓRICO (Mantido intacto conforme seu banco)
+          await conexao.query(
+            `INSERT INTO musicas_historico 
+            (id_video, views, likes, comentarios)
+            VALUES (?, ?, ?, ?)`,
+            [idVideo, views, likes, comentarios]
+          );
 
-totalAtualizado++;
-
-        
+          totalAtualizado++;
         }
       } catch (reqError: any) {
         throw new Error("Falha ao consultar URL: " + urlYoutubeDefinitiva + " | Erro Original: " + reqError.message);

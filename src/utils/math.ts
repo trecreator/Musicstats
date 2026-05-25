@@ -26,7 +26,7 @@ export function SuavizarNumero(num: number) //Suaviza numeros grandes e retorna-
     }
     // Bilhões (B)
     else {
-        numeroSuavizado = (num / 1000000000).toFixed(1).replace(/\.0$/, "") + "B";
+        numeroSuavizado = (num / 1000000000).toFixed(2) + "B";
        
         return numeroSuavizado;
     }

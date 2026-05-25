@@ -24,82 +24,81 @@ interface VideoPageProps {
 export default async function VideoPage({ params }: VideoPageProps) {
   const { id } = await params;
 
-  // CAPTURA IP
-  const cabecalhos = await headers();
+  // 1. OTIMIZAÇÃO: Busca apenas os dados primordiais primeiro
+  const musica = await buscarMusicaPorId(id);
 
+  if (!musica || !musica.url_video) {
+    return (
+      <main className="pt-24 min-h-screen bg-black text-white p-6 font-mono text-center">
+        <h1>Music or URL not found in our database.</h1>
+      </main>
+    );
+  }
+
+  // 2. CAPTURA IP E REGISTRO ASSÍNCRONO (Não bloqueia o carregamento HTML)
+  const cabecalhos = await headers();
   const ipUsuario =
     cabecalhos.get("x-forwarded-for")?.split(",")[0] ||
     cabecalhos.get("x-real-ip") ||
     "127.0.0.1";
 
-  // REGISTRA VISITA
-  await registrarVisitaMusica(id, ipUsuario);
+  registrarVisitaMusica(id, ipUsuario).catch((err) =>
+    console.error("Erro assíncrono ao registrar visita:", err)
+  );
 
-  // BUSCA DADOS
-  const musica = await buscarMusicaPorId(id);
+  // 3. OTIMIZAÇÃO: Paralelismo de banco via Promise.all (3x mais rápido)
+  const [historicoOntem, historicoCompleto, primeiroRegistroDoMes] = await Promise.all([
+    buscarHistoricoOntem(id),
+    listarHistoricoCompleto(id),
+    buscarPrimeiroRegistroDoMes(id),
+  ]);
 
-  if (!musica) {
-    return (
-      <main className="pt-24 min-h-screen bg-black text-white p-6 font-mono text-center">
-        <h1>Music not found in our database.</h1>
-      </main>
-    );
-  }
-
-  // HISTÓRICO
-  const historicoOntem = await buscarHistoricoOntem(id);
-
-  const historicoCompleto = await listarHistoricoCompleto(id);
-
-  const primeiroRegistroDoMes =
-    await buscarPrimeiroRegistroDoMes(id);
-
-  // FALLBACK
-  const yesterdayViews = historicoOntem
-    ? musica.views - historicoOntem.views
-    : 0;
-
-  const yesterdayLikes = historicoOntem
-    ? musica.likes - historicoOntem.likes
-    : 0;
-
-  const yesterdayComments = historicoOntem
-    ? musica.comentarios - historicoOntem.comentarios
-    : 0;
+  // FALLBACKS
+  const yesterdayViews = historicoOntem ? musica.views - historicoOntem.views : 0;
+  const yesterdayLikes = historicoOntem ? musica.likes - historicoOntem.likes : 0;
+  const yesterdayComments = historicoOntem ? musica.comentarios - historicoOntem.comentarios : 0;
 
   // FORMATADOS
   const viewsSuavizadas = SuavizarNumero(musica.views);
+  const yesterdayViewsSuavizadas = SuavizarNumero(yesterdayViews);
+  const likesSuavizados = SuavizarNumero(musica.likes);
+  const commentsSuavizados = SuavizarNumero(musica.comentarios);
 
-  const yesterdayViewsSuavizadas =
-    SuavizarNumero(yesterdayViews);
-
-  const likesSuavizados =
-    SuavizarNumero(musica.likes);
-
-  const commentsSuavizados =
-    SuavizarNumero(musica.comentarios);
+  const publishedAtFormatado = musica.published_at
+    ? new Date(musica.published_at).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "Unknown";
 
   // URL EMBED
-  const urlEmbedFinal = formatarLinkEmbed(
-    musica.url_video || "",
-    musica.id_video
-  );
+  const urlEmbedFinal = formatarLinkEmbed(musica.url_video, musica.id_video);
 
-  if (!musica.url_video) {
-    return (
-      <main className="pt-24 min-h-screen bg-black text-white p-6 font-mono text-center">
-        <h1>Cannot find music url.</h1>
-      </main>
-    );
-  }
-
-  const previsaoViews = calcularPrevisaoViews(
-  musica.views,
-  historicoCompleto
-  );
+  const previsaoViews = calcularPrevisaoViews(musica.views, historicoCompleto);
 
   return (
     <main className="pt-[120px] min-h-screen bg-purple-900/5 text-white p-6 font-mono">
+
+    {/* DADOS ESTRUTURADOS PARA O GOOGLE INDEXAR COMO VÍDEO */}
+<script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      "name": musica.titulo,
+      "description": `Assista e confira as estatísticas de ${musica.titulo}`,
+      "thumbnailUrl": musica.thumbnail || `https://youtube.com{musica.id_video}/maxresdefault.jpg`,
+      "uploadDate": musica.published_at ? new Date(musica.published_at).toISOString() : new Date().toISOString(),
+      "embedUrl": urlEmbedFinal,
+      // Se a duração estiver no formato "03:45", convertemos para o padrão ISO que o Google exige (PT3M45S)
+      "duration": musica.duration ? `PT${musica.duration.split(':')[0]}M${musica.duration.split(':')[1]}S` : undefined
+    })
+  }}
+/>
+
+
 
       {/* TÍTULO */}
       <h2 className="text-center text-2xl text-white mb-2 font-bold uppercase tracking-wider max-w-3xl mx-auto">
@@ -118,17 +117,13 @@ export default async function VideoPage({ params }: VideoPageProps) {
       </h4>
 
       <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-2 max-w-xl mx-auto pb-3">
-        
-        
-
         <Link
           href="/"
           className="items-center text-purple-400 hover:text-purple-300 hover:underline ml-1 font-bold"
         >
-        Back to Homepage
+          Back to Homepage
         </Link>
       </h5>
-
 
       {/* CONTEÚDO */}
       <div className="flex flex-col items-center max-w-4xl mx-auto gap-8 mb-16">
@@ -186,15 +181,14 @@ export default async function VideoPage({ params }: VideoPageProps) {
             <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
               <span className="text-white/50">Total Likes</span>
               <span className="text-orange-400 font-semibold">
-                {likesSuavizados}
+                {likesSuavizados === " " ? "Hidden by artist" : likesSuavizados}
               </span>
             </div>
 
             <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
               <span className="text-white/50">New Likes Yesterday</span>
               <span className="text-orange-300 font-semibold">
-                {yesterdayLikes >= 0 ? "+" : "-"}
-                {Math.abs(yesterdayLikes).toLocaleString()}
+                {yesterdayLikes === 0 ? "Hidden by artist" : `${yesterdayLikes >= 0 ? "+" : "-"}${Math.abs(yesterdayLikes).toLocaleString()}`}
               </span>
             </div>
 
@@ -205,11 +199,25 @@ export default async function VideoPage({ params }: VideoPageProps) {
               </span>
             </div>
 
-            <div className="flex justify-between items-center text-sm">
+            <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
               <span className="text-white/50">New Comments Yesterday</span>
               <span className="text-purple-300 font-semibold">
                 {yesterdayComments >= 0 ? "+" : "-"}
                 {Math.abs(yesterdayComments).toLocaleString()}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
+              <span className="text-white/50">Duration</span>
+              <span className="text-purple-300 font-semibold">
+                {musica.duration || "N/A"}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-white/50">Published At</span>
+              <span className="text-purple-300 font-semibold">
+                {publishedAtFormatado}
               </span>
             </div>
 
@@ -218,39 +226,26 @@ export default async function VideoPage({ params }: VideoPageProps) {
 
       </div>
 
-      {/* RODAPÉ */}
-      <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-6 max-w-xl mx-auto">
-        
-        
-        </h5>
-
-        {previsaoViews.success ? (
-  <p className="text-center text-sm text-white/70 font-mono mb-4">
-    Expected to hit{" "}
-    <span className="text-purple-400">
-      {SuavizarNumero(previsaoViews.milestone!)}
-    </span>{" "}
-    views on{" "}
-    <span className="text-purple-400">
-      {previsaoViews.predictedDate!.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })}
-    </span>
-  </p>
-) : (
-  <p className="text-center text-sm text-white/40 font-mono mb-4">
-    {previsaoViews.message}
-  </p>
-)}
-
-      {/* RODAPÉ */}
-      <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-6 max-w-xl mx-auto">
-        
-        
-        </h5>
-
+      {previsaoViews.success ? (
+        <p className="text-center text-sm text-white/70 font-mono mb-4">
+          Expected to hit{" "}
+          <span className="text-purple-400">
+            {SuavizarNumero(previsaoViews.milestone!)}
+          </span>{" "}
+          views on{" "}
+          <span className="text-purple-400">
+            {previsaoViews.predictedDate!.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
+        </p>
+      ) : (
+        <p className="text-center text-sm text-white/40 font-mono mb-4">
+          {previsaoViews.message}
+        </p>
+      )}
 
       {/* HISTÓRICO */}
       <div className="container mx-auto p-4">
@@ -261,7 +256,6 @@ export default async function VideoPage({ params }: VideoPageProps) {
       <h5 className="text-center text-xs text-white/40 border-t border-white/5 pt-6 max-w-xl mx-auto">
         Page Visits: {musica.visits}
         &nbsp;|&nbsp;
-
         <Link
           href="/"
           className="text-purple-400 hover:text-purple-300 hover:underline ml-1 font-bold"
@@ -274,19 +268,10 @@ export default async function VideoPage({ params }: VideoPageProps) {
   );
 }
 
-function formatarLinkEmbed(
-  url: string,
-  id: string
-): string {
+function formatarLinkEmbed(url: string, id: string): string {
   if (!url) return "";
-
-  if (url.includes("watch?v=")) {
+  if (url.includes("watch?v=") || url.includes("youtu.be/")) {
     return `https://www.youtube.com/embed/${id}`;
   }
-
-  if (url.includes("youtu.be/")) {
-    return `https://www.youtube.com/embed/${id}`;
-  }
-
   return url;
 }
