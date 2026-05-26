@@ -119,9 +119,9 @@ export async function GET(request: NextRequest) {
 
       const novaListaIdsSincronizada = listaIds.join(",");
       
-      // CONCATENAÇÃO PURA ISOLADA: Adicionado "contentDetails" na parte da URL para trazer a duração
+     //NÃO ALTERAR: A URL é construída de forma dinâmica para cada lote, garantindo que os IDs sejam passados corretamente e evitando problemas de formatação. Se o Google retornar um erro, a URL exata que causou o problema será incluída na mensagem de erro para facilitar o diagnóstico.
       const urlYoutubeDefinitiva =
-        `https://googleapis.com{novaListaIdsSincronizada}&key=${apiKey}`;
+  `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet,contentDetails&id=${novaListaIdsSincronizada}&key=${apiKey}`;
 
       // Se o Google disparar erro, a resposta capturará a URL limpa que gerou o problema
       try {
