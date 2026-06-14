@@ -3,6 +3,7 @@ export const revalidate = 3600;
 import { headers } from "next/headers";
 import Link from "next/link";
 import { calcularPrevisaoViews } from "@/utils/predictions";
+import type { Metadata } from "next";
 
 import {
   registrarVisitaMusica,
@@ -16,6 +17,36 @@ import { SuavizarNumero } from "@/utils/math";
 
 import VideoHistoricList from "@/app/_components/video/VideoHistoricList";
 import VideoMonthViews from "@/app/_components/video/VideoMonthViews";
+
+export async function generateMetadata(
+  { params }: VideoPageProps
+): Promise<Metadata> {
+
+  const { id } = await params;
+  const musica = await buscarMusicaPorId(id);
+
+  if (!musica) {
+    return {
+      title: "Music Not Found | MusicalStats",
+    };
+  }
+
+  return {
+  title: `${musica.titulo} Statistics & Analytics | MusicalStats`,
+  description: `${musica.titulo} statistics, views, likes, comments, daily growth, monthly growth and historical evolution.`,
+  alternates: {
+    canonical: `https://musicalstats.com/video/${id}`,
+  },
+  openGraph: {
+    title: `${musica.titulo} Statistics & Analytics`,
+    description: `${musica.titulo} statistics and historical evolution.`,
+    images: [
+      musica.thumbnail ||
+      `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`
+    ],
+  },
+};
+}
 
 interface VideoPageProps {
   params: Promise<{ id: string }>;
@@ -46,12 +77,12 @@ export default async function VideoPage({ params }: VideoPageProps) {
     console.error("Erro assíncrono ao registrar visita:", err)
   );
 
-  // 3. OTIMIZAÇÃO: Paralelismo de banco via Promise.all (3x mais rápido)
-  const [historicoOntem, historicoCompleto, primeiroRegistroDoMes] = await Promise.all([
-    buscarHistoricoOntem(id),
-    listarHistoricoCompleto(id),
-    buscarPrimeiroRegistroDoMes(id),
-  ]);
+  const [historicoOntem, primeiroRegistroDoMes] = await Promise.all([
+  buscarHistoricoOntem(id),
+  buscarPrimeiroRegistroDoMes(id),
+]);
+
+const historicoCompleto = await listarHistoricoCompleto(id);
 
   // FALLBACKS
   const yesterdayViews = historicoOntem ? musica.views - historicoOntem.views : 0;
@@ -77,6 +108,23 @@ export default async function VideoPage({ params }: VideoPageProps) {
 
   const previsaoViews = calcularPrevisaoViews(musica.views, historicoCompleto);
 
+      const thumbnailUrl =
+  musica.thumbnail ||
+  `https://i.ytimg.com/vi/${musica.id_video}/maxresdefault.jpg`;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "VideoObject",
+  name: musica.titulo,
+  description: `${musica.titulo} statistics, views, likes, comments, daily growth and historical evolution.`,
+  thumbnailUrl: [thumbnailUrl],
+  uploadDate: musica.published_at
+    ? new Date(musica.published_at).toISOString()
+    : undefined,
+  embedUrl: urlEmbedFinal,
+  url: `https://musicalstats.com/video/${musica.id_video}`,
+};
+
   return (
     <main className="pt-[120px] min-h-screen bg-purple-900/5 text-white p-6 font-mono">
 
@@ -84,17 +132,7 @@ export default async function VideoPage({ params }: VideoPageProps) {
 <script
   type="application/ld+json"
   dangerouslySetInnerHTML={{
-    __html: JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "VideoObject",
-      "name": musica.titulo,
-      "description": `Assista e confira as estatísticas de ${musica.titulo}`,
-      "thumbnailUrl": musica.thumbnail || `https://youtube.com{musica.id_video}/maxresdefault.jpg`,
-      "uploadDate": musica.published_at ? new Date(musica.published_at).toISOString() : new Date().toISOString(),
-      "embedUrl": urlEmbedFinal,
-      // Se a duração estiver no formato "03:45", convertemos para o padrão ISO que o Google exige (PT3M45S)
-      "duration": musica.duration ? `PT${musica.duration.split(':')[0]}M${musica.duration.split(':')[1]}S` : undefined
-    })
+    __html: JSON.stringify(jsonLd),
   }}
 />
 
@@ -104,6 +142,15 @@ export default async function VideoPage({ params }: VideoPageProps) {
       <h2 className="text-center text-2xl text-white mb-2 font-bold uppercase tracking-wider max-w-3xl mx-auto">
         {musica.titulo}
       </h2>
+
+    <img
+  src={thumbnailUrl}
+  alt={musica.titulo ?? "Music thumbnail"}
+  width={480}
+  height={270}
+  loading="eager"
+  className="sr-only"
+/>
 
       <h4 className="text-center text-sm text-white/60 mb-4">
         Watch on YouTube:{" "}

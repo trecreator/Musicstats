@@ -261,16 +261,26 @@ export async function buscarUltimaAtualizacao(): Promise<string | null> {
   }).format(new Date(rows[0].ultima_atualizacao));
 }
 
-export async function buscarTodosIdsVideos(): Promise<{ id_video: string }[]> {
+export async function buscarTodosIdsVideos(): Promise<
+  {
+    id_video: string;
+    ultima_atualizacao: Date | null;
+  }[]
+> {
   const [rows] = await conexao.query<any[]>(
     `
-    SELECT id_video
+    SELECT
+      id_video,
+      ultima_atualizacao
     FROM musicas
-    WHERE views > 0;
+    WHERE views > 0
     `
   );
 
-  return rows;
+  return rows as {
+    id_video: string;
+    ultima_atualizacao: Date | null;
+  }[];
 }
 
 export async function buscarMaisVistasHoje(): Promise<any[]> {

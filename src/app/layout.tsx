@@ -19,10 +19,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://musicalstats.com"),
+
   title: "MusicalStats",
-  description: "Search for your favorite musics and see them analytics",
+
+  description:
+    "Search for your favorite musics and see detailed analytics.",
+
   icons: {
     icon: "/favicon.png",
+  },
+
+  openGraph: {
+    siteName: "MusicalStats",
+    type: "website",
   },
 };
 
