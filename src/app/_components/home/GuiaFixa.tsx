@@ -5,6 +5,7 @@ import BarraBusca from "./BarraDePesquisaMusicas";
 import React from "react";
 import { InfoPageButton } from "./InfoPageButton";
 import { InfoPageYoutubeButton }  from "./InfoPageYotubeButton";
+import { UpdatesButton } from "./Updates";
 
 export default function GuiaFixa() {
     return (
@@ -32,6 +33,9 @@ export default function GuiaFixa() {
                             <InfoPageYoutubeButton />
                         </div>
 
+                        <div className="text-sm">
+                            <UpdatesButton />
+                        </div>
 
                     </div>
 

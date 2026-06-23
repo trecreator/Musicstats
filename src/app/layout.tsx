@@ -52,7 +52,7 @@ export default function RootLayout({
         
         {/* Versão automatizada aqui */}
         <div className="fixed bottom-4 right-4 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-xs text-white/50 font-mono">
-          <p>MusicalStats v{version}</p>
+          <p>MusicalStats v0.1.2</p>
         </div>
 
         <footer className="w-full py-8 mt-12 border-t border-white/5 text-center font-mono text-xs text-white/30">

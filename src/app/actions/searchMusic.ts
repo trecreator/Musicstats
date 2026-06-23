@@ -310,3 +310,46 @@ export async function buscarMaisVistasHoje(): Promise<any[]> {
   );
   return rows;
 }
+
+export async function listarHistoricoPaginado(
+  id_video: string,
+  pagina: number = 1,
+  limite: number = 15
+): Promise<any[]> {
+
+  const offset = (pagina - 1) * limite;
+
+  const [rows] = await conexao.query<any[]>(
+    `
+    SELECT
+      views,
+      likes,
+      comentarios,
+      capturado_em
+    FROM musicas_historico
+    WHERE id_video = ?
+    ORDER BY capturado_em DESC
+    LIMIT ?
+    OFFSET ?;
+    `,
+    [id_video, limite, offset]
+  );
+
+  return rows;
+}
+
+export async function contarHistorico(
+  id_video: string
+): Promise<number> {
+
+  const [rows] = await conexao.query<any[]>(
+    `
+    SELECT COUNT(*) AS total
+    FROM musicas_historico
+    WHERE id_video = ?;
+    `,
+    [id_video]
+  );
+
+  return Number(rows[0]?.total || 0);
+}
