@@ -24,7 +24,7 @@ export default function CardVideo({ musica, posicao }: CardVideoProps) {
 
   return (
     <Link href={`/video/${musica.id_video}`} className="w-full">
-      <div className="flex items-center w-full p-2 mb-1 bg-purple-500/2 border border-purple-900/45 rounded outline outline-1 rounded hover:bg-white/5 hover:border-white/50 hover:outline-blue-500/20 rounded transition-all duration-300 mb-5">
+      <div className="flex items-center w-full p-2 mb-1 bg-purple-900/7 border border-purple-500/65 rounded outline outline-1 rounded hover:bg-white/5 hover:border-white/50 hover:outline-blue-500/20 rounded transition-all duration-300 mb-5">
         
         {/* 1. Posição do Ranking */}
         <span className="text-xs font-mono text-purple-400 mr-2 min-w-[25px]">
@@ -39,7 +39,7 @@ export default function CardVideo({ musica, posicao }: CardVideoProps) {
         </div>
 
         {/* 3. TENDÊNCIA TOTALMENTE FIXA: Alinhada perfeitamente em coluna */}
-        <div className="w-32 shrink-0 hidden sm:block font-mono text-xs text-green-400 select-none cursor-default">
+        <div className="w-32 shrink-0 hidden sm:block font-mono text-xs text-yellow-400 select-none cursor-default">
           +{porcentagemCrescimento}% yesterday views growth
         </div>
 

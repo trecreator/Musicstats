@@ -1,40 +1,36 @@
 import Link from "next/link";
 
-
-
 export default function UpdatesPage() {
-    return(
-
-        <main className="pt-35 flex min-h-screen flex-col items-center">
-            <div className="items-center justify-center flex flex-col mt-4 text-white font-mono text">
-            Update Logs
-            </div>
-
-             <h5 className="w-full mt-4 text-center  text-xs text-white/80 border-t border-white/25 pt-4 pb-4">
-
-            <div className="mt-4 items-center justify-center flex-col text-white/75 font-mono text-sm">
-            22/06/2026 - DD/MM/YYYY
-            </div>
-
+    return (
+        // Substituído pt-35 por pt-24 (ou use pt-[140px] se quiser o valor exato)
+        <main className="pt-24 flex min-h-screen flex-col items-center px-4">
             
+            <h1 className="mt-4 text-white font-mono text-xl font-bold">
+                Update Logs
+            </h1>
 
-            <div className="ml-130 mt-4 items-start flex flex-col text-white/60 font-mono text-xs">
-            <span> - Faster pages </span>
-            <span> - Now the historical data columns for each song are divided into pages to avoid creating a very long list. </span>
-            <span> - Added "Update Logs" page </span>
-            <span> - New Site Icon </span>
-            </div>
+            {/* Substituído h5 por section (semântica correta) */}
+            <section className="w-full max-w-md mt-6 text-center border-t border-white/25 pt-4 pb-4">
+                <div className="text-white/75 font-mono text-sm">
+                    22/06/2026 - DD/MM/YYYY
+                </div>
 
-            </h5>
+                {/* Removido ml-130 e centralizado o bloco com asfalto alinhado à esquerda */}
+                <div className="mt-4 mx-auto max-w-xs flex flex-col items-start text-white/60 font-mono text-xs space-y-1 text-left">
+                    <span>- Faster pages</span>
+                    <span>- Now the historical data columns for each song are divided into pages to avoid creating a very long list.</span>
+                    <span>- Added "Update Logs" page</span>
+                    <span>- New Site Icon</span>
+                </div>
+            </section>
 
-        <h5 className="w-full mt-4 text-center justify-center text-xs text-white/80 border-t border-white/25 pt-4 pb-4">
-            <Link href="/" className="mt-4 text-purple-500 hover:text-purple-200">
-                Back to Homepage
-            </Link>
-            </h5>
+            {/* Rodapé com o link */}
+            <footer className="w-full max-w-md mt-4 text-center border-t border-white/25 pt-4 pb-4">
+                <Link href="/" className="inline-block mt-2 text-purple-500 hover:text-purple-200 transition-colors">
+                    Back to Homepage
+                </Link>
+            </footer>
 
         </main>
-
-    )
-
+    );
 }

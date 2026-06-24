@@ -65,7 +65,7 @@ export default function PainelMusicas({ musicasIniciais, paginaAtual, ordemAtual
         {musicasIniciais.length > 0 ? (
           musicasIniciais.map((musica, index) => {
             // Calcula o número do ranking considerando a página atual (Ex: página 2 começa no #26)
-            const posicaoRanking = (paginaAtual - 1) * 25 + (index + 1);
+            const posicaoRanking = (paginaAtual - 1) * 20 + (index + 1);
             return (
               <CardVideo 
                 key={musica.id_video} 
@@ -97,8 +97,8 @@ export default function PainelMusicas({ musicasIniciais, paginaAtual, ordemAtual
 
         <button
           onClick={() => mudarPagina(paginaAtual + 1)}
-          // Desativa o botão se a página atual trouxe menos de 25 músicas (sinal de que a lista acabou)
-          disabled={musicasIniciais.length < 25}
+          // Desativa o botão se a página atual trouxe menos de 20 músicas (sinal de que a lista acabou)
+          disabled={musicasIniciais.length < 20}
           className="px-3 py-1 text-xs border-2 border-white/20 rounded bg-purple-900/10 text-white/80 transition-colors hover:border-purple-500/35 disabled:opacity-30 disabled:hover:border-white/20 disabled:cursor-not-allowed"
         >
           Next &gt;

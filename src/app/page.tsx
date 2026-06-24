@@ -1,3 +1,5 @@
+
+
 export const revalidate = 3600;
 
 import PainelMusicas from './_components/home/PainelMusicas';
@@ -21,7 +23,7 @@ export default async function MainPage({ searchParams }: MainPageProps) {
     const ordemFiltro = params.ordem ?? "views_desc";
 const ultimaAtualizacao = await buscarUltimaAtualizacao();
     // 2. Dispara a busca inteligente unificada no MySQL
-    const musicasOrdinarias = await buscarMusicasAvancado(termoBusca, paginaAtual, 25, ordemFiltro);
+    const musicasOrdinarias = await buscarMusicasAvancado(termoBusca, paginaAtual, 20, ordemFiltro);
     
     // --- NOVO: BUSCA E INJEÇÃO DOS GANHOS DE ONTEM EM LOTE ---
     const idsVideos = musicasOrdinarias.map((m) => m.id_video);
