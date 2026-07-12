@@ -24,14 +24,14 @@ export const metadata: Metadata = {
   title: "MusicalStats",
 
   description:
-    "Search for your favorite musics and see detailed analytics.",
+    "See musics kworb-style analytics with charts for free without login.",
 
   icons: {
     icon: "/favicon.png",
   },
 
   openGraph: {
-    siteName: "MusicalStats",
+    siteName: "MusicalStats - music analytics",
     type: "website",
   },
 };
