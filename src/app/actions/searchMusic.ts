@@ -1,6 +1,7 @@
 'use server';
 
 import mysql from "mysql2/promise";
+import type { RowDataPacket } from "mysql2/promise";
 import type { MusicaRow } from "@/types/music";
 import type { Musica } from "@/types/music";
 import type { MusicaHistoricoRow } from "@/types/musicHistorico";
@@ -368,4 +369,75 @@ export async function contarHistorico(
   } finally {
     connection.release(); // Libera a conexão
   }
+}
+
+export interface HistoricoMusica extends RowDataPacket{
+
+  views: number;
+  likes: number;
+  comentarios: number;
+  capturado_em: Date;
+  
+}
+
+export async function buscarUltimos4Historicos(id_video: string): Promise<HistoricoMusica[]>{
+
+  const connection = await conexao.getConnection();
+
+  try {
+
+    const [rows] = await connection.query<HistoricoMusica[]>(
+      `
+      SELECT
+        views,
+        likes,
+        comentarios,
+        capturado_em
+      FROM musicas_historico
+      WHERE id_video = ?
+      ORDER BY capturado_em DESC
+      LIMIT 4;
+      `,
+      [id_video]
+    );
+
+    return rows.reverse();
+
+  } finally {
+
+    connection.release();
+
+  }
+}
+
+export async function BuscarCharts(id_musica: string, metric: string): Promise<HistoricoMusica[]> {
+
+const connection = await conexao.getConnection();
+let coluna: string = "";
+if (metric === "likes"){coluna = "likes";} else{
+  if(metric === "comments" || metric === "comentarios") {coluna = "comentarios";} else {
+    if(metric === "views") { coluna = "views";} else 
+    {connection.release();
+      return [];
+    }
+  }
+}
+
+
+try{
+
+const [rows] = await connection.query<HistoricoMusica[]>(
+`
+SELECT ${coluna}, capturado_em 
+FROM musicas_historico
+WHERE id_video = ?
+`, [id_musica]
+);
+
+return rows;
+
+} finally{
+  connection.release();
+}
+
 }

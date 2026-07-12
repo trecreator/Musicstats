@@ -11,11 +11,14 @@ import {
   contarHistorico,
   buscarPrimeiroRegistroDoMes,
   buscarHistoricoOntem,
+  buscarUltimos4Historicos
 } from "@/app/actions/searchMusic";
 
 import { SuavizarNumero } from "@/utils/math";
 import VideoHistoricList from "@/app/_components/video/VideoHistoricList";
 import VideoMonthViews from "@/app/_components/video/VideoMonthViews";
+import ReachTimeCalculator from "./reachTimeCalculator";
+import Charts from "./charts";
 
 // Cache do React para evitar que a mesma query rode duas vezes (Metadata e Page)
 const obterMusicaComCache = cache(async (id: string) => {
@@ -68,9 +71,12 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
     listarHistoricoPaginado(id, paginaAtual, registrosPorPagina),
     buscarPrimeiroRegistroDoMes(id),
     contarHistorico(id),
+    
   ]);
 
   const totalPaginas = Math.ceil(totalHistorico / registrosPorPagina);
+
+  const historicos = await buscarUltimos4Historicos(id)
 
   /* 3. Cálculos de Diferenças */
   const yesterdayViews = historicoOntem ? musica.views - historicoOntem.views : 0;
@@ -260,6 +266,26 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
           </Link>
         )}
       </div>
+
+        
+
+        <div className="flex flex-col gap-4">
+
+        <ReachTimeCalculator
+          views={musica.views}
+          likes={musica.likes}
+          comments={musica.comentarios}
+          historico={historicos}
+          >
+        </ReachTimeCalculator>
+      </div>
+
+        <div className="flex flex-col gap-4">
+          <Charts
+            id_musica = {musica.id_video}
+            >
+          </Charts>
+            </div>
 
       {/* FOOTER */}
       <h5 className="text-center text-xs text-white/55 border-t border-white/5 pt-4 pb-4">
