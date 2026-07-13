@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cache } from "react";
 import { calcularPrevisaoViews } from "@/utils/predictions";
 import type { Metadata } from "next";
+import notfound from "./not-found";
 
 import {
   buscarMusicaPorId,
@@ -33,8 +34,8 @@ export async function generateMetadata({ params }: VideoPageProps): Promise<Meta
   if (!musica) return { title: "Music Not Found | MusicalStats" };
 
   return {
-    title: `${musica.titulo} Statistics | MusicalStats`,
-    description: `${musica.titulo} statistics, views, likes, comments, daily growth, monthly growth and historical evolution.`,
+    title: `${musica.titulo} Youtube Statistics | MusicalStats`,
+    description: ` ${musica.titulo} is currently with ${musica.likes} likes, ${musica.comments} comments and ${musica.views} views. `
   };
 }
 
@@ -53,11 +54,7 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
   const musica = await obterMusicaComCache(id);
 
   if (!musica || !musica.url_video) {
-    return (
-      <main className="pt-24 min-h-screen bg-black text-white p-6 text-center">
-        <h1>Music or URL not found in our database.</h1>
-      </main>
-    );
+    return (notfound())
   }
 
   /* 2. Queries paralelas */
@@ -108,6 +105,8 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
     embedUrl: urlEmbedFinal,
     url: `https://musicalstats.com{musica.id_video}`,
   };
+
+  
 
   return (
     <main className="pt-[120px] min-h-screen bg-purple-900/5 text-white p-6 font-mono">
