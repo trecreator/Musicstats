@@ -226,7 +226,7 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
         <p className="text-center text-sm text-white/70 mb-4">
           Expected to hit{" "}
           <span className="text-purple-400">{SuavizarNumero(previsaoViews.milestone!)}</span> views on{" "}
-          <span className="text-purple-400">{previsaoViews.predictedDate!.toLocaleDateString()}</span> - DD/MM/YYYY format.
+          <span className="text-purple-400">{previsaoViews.predictedDate!.toLocaleDateString()}</span> - MM/DD/YYYY.
         </p>
       ) : (
         <p className="text-center text-sm text-white/40 mb-4">{previsaoViews.message}</p>

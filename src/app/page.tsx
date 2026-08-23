@@ -56,7 +56,7 @@ const ultimaAtualizacao = await buscarUltimaAtualizacao();
     <main className="px-30 mt-[100px] min-h-screen bg-yellow-900/1 ">
       
       <div className="p-6 max-w-5xl mx-auto text-sm text-white/80 font-mono">
-        Search and see kworb style music analytics. <p>Last DataBank update: <span className="text-purple-400">{ultimaAtualizacao}.</span></p> <p>Wanna see your favorite music here? Request it  
+        Search and see kworb style music analytics. <p>Last DataBank update: <span className="text-purple-400">{ultimaAtualizacao} - DD/MM.</span></p> <p>Wanna see your favorite music here? Request it  
         <Link href="/contact" className="text-purple-400 hover:text-purple-300 hover:underline">
               <> </>here
         </Link>

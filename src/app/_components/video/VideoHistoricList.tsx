@@ -1,5 +1,6 @@
 'use client'; // Necessário para o useEffect funcionar no Next.js
 
+import { buscarUltimaAtualizacao } from "@/app/actions/searchMusic";
 import React from "react";
 import { useEffect } from "react";
 
@@ -9,6 +10,8 @@ interface HistoricoItem {
   comentarios: number;
   capturado_em: string | Date;
 }
+
+let bUltimaAtualizacao = buscarUltimaAtualizacao(); // Adicionada a nova função em lote
 
 // CORREÇÃO: Adicionado id_video na interface de propriedades
 interface VideoHistoricListProps {
@@ -53,9 +56,8 @@ export default function VideoHistoricList({
 
         <div className="text-xs text-purple-400 font-semibold">
           Last Update:{" "}
-          {ultimaAtualizacao
-            ? new Date(ultimaAtualizacao).toLocaleString("pt-BR")
-            : "Unknown"}
+          {bUltimaAtualizacao
+            } - DD/MM.
         </div>
       </div>
 
