@@ -288,7 +288,7 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
 
       {/* FOOTER */}
       <h5 className="text-center text-xs text-white/55 border-t border-white/5 pt-4 pb-4">
-        Wanna see your music here?{" "}
+        Wanna see your favourite music here?{" "}
         <Link href="/contact" className="text-purple-400 hover:underline font-bold">
           Contact
         </Link>

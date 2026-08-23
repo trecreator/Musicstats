@@ -40,8 +40,8 @@ export default function ContactPage() {
   return (
     <div style={{
       maxWidth: '600px',
-      margin: '60px auto',
-      padding: '25px',
+      margin: '105px auto',
+      padding: '30px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       color: '#f1f5f9',
       backgroundColor: '#1e1e24', // Fundo cinza escuro
@@ -52,7 +52,7 @@ export default function ContactPage() {
       
       {/* LINK DE RETORNO NO TOPO */}
       <div style={{ marginBottom: '20px' }}>
-        <Link href="/" className="text-purple-400 hover:text-purple-300 hover:underline font-bold">
+        <Link href="/" className="text-purple-400 hover:text-purple-300 hover:underline font-bold mt-[15]">
            ← Back to Homepage
         </Link>
       </div>
@@ -135,11 +135,7 @@ export default function ContactPage() {
         </button>
       </form>
 
-      <div style={{ marginTop: '30px', paddingTop: '15px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', textAlign: 'center' }}>
-        <Link href="/" className="text-purple-400 hover:text-purple-300 hover:underline font-bold">
-           Back to Homepage
-        </Link>
-      </div>
+     
 
     </div>
   );
