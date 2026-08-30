@@ -198,18 +198,30 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function escolherMelhorThumbnail(thumbnails: any): string | null {
-  if(!thumbnails) return null;
+interface YoutubeThumbnails {
+  maxres?: { url: string };
+  standard?: { url: string };
+  high?: { url: string };
+  medium?: { url: string };
+  default?: { url: string };
+}
 
-  const ordemPreferida = ["maxres","standard","high","medium","default"];
+function escolherMelhorThumbnail(thumbnails: YoutubeThumbnails | null | undefined, videoId?: string): string | null {
+  // 1. Tenta pegar a melhor disponível fornecida pela API
+  if (thumbnails) {
+    const ordemPreferida: (keyof YoutubeThumbnails)[] = ["maxres", "standard", "high", "medium", "default"];
 
-  for(const qualidade of ordemPreferida){
-
-    if(thumbnails[qualidade]?.url){
-
-      return thumbnails[qualidade].url;
+    for (const qualidade of ordemPreferida) {
+      if (thumbnails[qualidade]?.url) {
+        return thumbnails[qualidade].url;
+      }
     }
+  }
 
+  // 2. FALLBACK SEGURO: Se a API falhou ou retornou null, mas temos o ID do vídeo
+  if (videoId) {
+    // hqdefault (480x360) existe para ABSOLUTAMENTE TODOS os vídeos do YouTube, mesmo os de 2005
+    return `https://youtube.com{videoId}/hqdefault.jpg`;
   }
 
   return null;
