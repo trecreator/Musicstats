@@ -147,16 +147,18 @@ export async function GET(request: NextRequest) {
                 .replace("Z", "")
             : null;
           
+          
           // Captura e formata a duração vinda do item
           const isoDuration = item.contentDetails?.duration;
           const duration = isoDuration ? parseISO8601Duration(isoDuration) : null;
+          const thumbnailUrl = escolherMelhorThumbnail(item.snippet?.thumbnails);
 
           // UPDATE ATUALIZADO: Agora salva o campo duration na tabela de musicas
           await conexao.query(
             `UPDATE musicas 
-             SET views = ?, likes = ?, comentarios = ?, published_at = ?, duration = ?, ultima_atualizacao = NOW() 
+             SET views = ?, likes = ?, comentarios = ?, published_at = ?, duration = ?, thumbnail = ?, ultima_atualizacao = NOW() 
              WHERE id_video = ?`,
-            [views, likes, comentarios, publishedAt, duration, idVideo]
+            [views, likes, comentarios, publishedAt, duration, thumbnailUrl, idVideo]
           );
 
           // SALVA SNAPSHOT HISTÓRICO (Mantido intacto conforme seu banco)
@@ -194,4 +196,21 @@ export async function GET(request: NextRequest) {
       debug: validacaoEnv
     }, { status: 500 });
   }
+}
+
+function escolherMelhorThumbnail(thumbnails: any): string | null {
+  if(!thumbnails) return null;
+
+  const ordemPreferida = ["maxres","standard","high","medium","default"];
+
+  for(const qualidade of ordemPreferida){
+
+    if(thumbnails[qualidade]?.url){
+
+      return thumbnails[qualidade].url;
+    }
+
+  }
+
+  return null;
 }

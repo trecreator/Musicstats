@@ -103,7 +103,7 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
     name: musica.titulo,
     description: `${musica.titulo} statistics and historical evolution.`,
     embedUrl: urlEmbedFinal,
-    url: `https://musicalstats.com{musica.id_video}`,
+    url: `https://musicalstats.com${musica.id_video}`,
   };
 
   
