@@ -97,14 +97,18 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
   const urlEmbedFinal = formatarLinkEmbed(musica.url_video, musica.id_video);
   const previsaoViews = calcularPrevisaoViews(musica.views, historicoPaginaAtual);
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "VideoObject",
-    name: musica.titulo,
-    description: `${musica.titulo} statistics and historical evolution.`,
-    embedUrl: urlEmbedFinal,
-    url: `https://musicalstats.com${musica.id_video}`,
-  };
+ const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "VideoObject",
+  name: musica.titulo,
+  description: `${musica.titulo} statistics and historical evolution.`,
+  embedUrl: urlEmbedFinal,
+  thumbnailUrl: musica.thumbnail,
+  uploadDate: musica.published_at
+    ? new Date(musica.published_at).toISOString()
+    : undefined,
+  url: `https://musicalstats.com/video/${musica.id_video}`,
+};
 
   
 
