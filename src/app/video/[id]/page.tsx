@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: VideoPageProps): Promise<Meta
 
   return {
     title: `${musica.titulo} Youtube Statistics | MusicalStats`,
-    description: ` ${musica.titulo} is currently with ${musica.likes} likes, ${musica.comments} comments and ${musica.views} views. `
+    description: ` ${musica.titulo} is currently with ${musica.likes} likes, ${musica.comentarios} comments and ${musica.views} views. `
   };
 }
 
