@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Line, LineChart, YAxis, XAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { BuscarCharts, HistoricoMusica } from '@/app/actions/searchMusic';
 import  ToolTip  from './ToolTip';
@@ -16,21 +16,16 @@ const options = [
 ]
 
 export default function Charts({ id_musica }: Props) {
+  const [resultado, setResultado] = useState<any>([]);
+  const [metric, setMetric] = useState<string>("likes");
+  const [isPending, startTransition] = useTransition();
 
-        const [resultado, setResultado] = useState<any>([]);
-        
-        let [metric, setMetric] = useState<string>("likes");
-        useEffect(() => {
-        async function BuscarDados(){
-
-            setResultado(await BuscarCharts(id_musica, metric));
-
-        }
-
-        BuscarDados();
-
-    }, [metric]
-    );
+  useEffect(() => {
+    startTransition(async () => {
+      const dados = await BuscarCharts(id_musica, metric);
+      setResultado(dados);
+    });
+  }, [metric]);
    
     let data: any = [];
    

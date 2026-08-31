@@ -283,13 +283,13 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
         </ReachTimeCalculator>
       </div>
 
-        {/* <div className="flex flex-col gap-4">
+         <div className="flex flex-col gap-4">
           <Charts
             id_musica = {musica.id_video}
             >
           </Charts>
             </div>
-        */}
+        
       {/* FOOTER */}
       <h5 className="text-center text-xs text-white/55 border-t border-white/5 pt-4 pb-4">
         Wanna see your favourite music here?{" "}
