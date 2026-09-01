@@ -1,7 +1,7 @@
 'use client'; // Necessário para o useEffect funcionar no Next.js
 
 import { buscarUltimaAtualizacao } from "@/app/actions/searchMusic";
-import React from "react";
+import React, { useState } from "react";
 import { useEffect } from "react";
 
 interface HistoricoItem {
@@ -11,7 +11,7 @@ interface HistoricoItem {
   capturado_em: string | Date;
 }
 
-let bUltimaAtualizacao = buscarUltimaAtualizacao(); // Adicionada a nova função em lote
+
 
 // CORREÇÃO: Adicionado id_video na interface de propriedades
 interface VideoHistoricListProps {
@@ -25,7 +25,7 @@ export default function VideoHistoricList({
   dados,
   ultimaAtualizacao,
 }: VideoHistoricListProps) {
-  
+  const [ultimaAtualizacaoGlobal, setUltimaAtualizacaoGlobal] = useState<string | null>(null);
   // CORREÇÃO: O fetch agora usa o id_video real recebido via propriedade
   useEffect(() => {
     if (!id_video) return;
@@ -38,6 +38,10 @@ export default function VideoHistoricList({
       body: JSON.stringify({ id: id_video }),
     }).catch((err) => console.error("Erro ao registrar visita:", err));
   }, [id_video]);
+
+    useEffect(() => {
+    buscarUltimaAtualizacao().then(setUltimaAtualizacaoGlobal);
+  }, []);
 
   if (!dados || dados.length === 0) {
     return (
@@ -56,7 +60,7 @@ export default function VideoHistoricList({
 
         <div className="text-xs text-purple-400 font-semibold">
           Last Update:{" "}
-          {bUltimaAtualizacao
+          {ultimaAtualizacaoGlobal
             } - DD/MM.
         </div>
       </div>
