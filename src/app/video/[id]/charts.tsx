@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState } from "react";
 import { Line, LineChart, YAxis, XAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { BuscarCharts, HistoricoMusica } from '@/app/actions/searchMusic';
+import type { HistoricoMusica } from '@/app/actions/searchMusic';
 import  ToolTip  from './ToolTip';
 
 interface Props {
-    id_musica: string
+    historico: HistoricoMusica[] // ordem crescente (mais antigo primeiro)
 }
 
 const options = [
@@ -15,17 +15,9 @@ const options = [
 "comentarios"
 ]
 
-export default function Charts({ id_musica }: Props) {
-  const [resultado, setResultado] = useState<any>([]);
+export default function Charts({ historico }: Props) {
+  const resultado: any[] = historico;
   const [metric, setMetric] = useState<string>("likes");
-  const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    startTransition(async () => {
-      const dados = await BuscarCharts(id_musica, metric);
-      setResultado(dados);
-    });
-  }, [metric]);
    
     let data: any = [];
    
@@ -36,7 +28,7 @@ export default function Charts({ id_musica }: Props) {
         const crescimento = resultado[i][metric] - resultado[i - 1][metric];
         
     data.push(
-        { name: resultado[i].capturado_em.getDate() + "/" + (resultado[i].capturado_em.getMonth() + 1),
+        { name: new Date(resultado[i].capturado_em).getDate() + "/" + (new Date(resultado[i].capturado_em).getMonth() + 1),
           uv: crescimento,
            
     });
@@ -110,7 +102,6 @@ nomeDado: string
                         dado: dados.uv
                        
                     })
-                    console.log(mousePosition);
                 }}}
                 onMouseLeave={(e) => {setMousePosition(null);}}
     

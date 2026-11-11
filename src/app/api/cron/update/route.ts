@@ -76,12 +76,12 @@ export async function GET(request: NextRequest) {
     CRON_SECRET_EXISTE: !!process.env.CRON_SECRET,
   };
 
-  const { searchParams } = new URL(request.url);
-  const tokenUrl = searchParams.get("token");
-  const tokenSecreto = (process.env.CRON_SECRET || "ms_121920eCCLk2978_sec_page_r9").trim();
+  // A Vercel envia automaticamente "Authorization: Bearer <CRON_SECRET>" nas execuções do cron.
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  const autorizacao = request.headers.get("authorization");
 
-  if (!tokenUrl || tokenUrl !== tokenSecreto) {
-    return NextResponse.json({ error: "Acesso Não Autorizado via Token.", debug: validacaoEnv }, { status: 401 });
+  if (!cronSecret || autorizacao !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Acesso Não Autorizado." }, { status: 401 });
   }
 
   if (!poolConfig) {
@@ -172,7 +172,8 @@ export async function GET(request: NextRequest) {
           totalAtualizado++;
         }
       } catch (reqError: any) {
-        throw new Error("Falha ao consultar URL: " + urlYoutubeDefinitiva + " | Erro Original: " + reqError.message);
+        // Mascara a chave da API para ela não vazar na resposta/logs
+        throw new Error("Falha ao consultar URL: " + urlYoutubeDefinitiva.replace(apiKey, "***") + " | Erro Original: " + reqError.message);
       }
     }
 

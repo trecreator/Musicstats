@@ -1,18 +1,22 @@
+// ISR: a página fica em cache por 1h na Vercel (antes era renderizada a cada visita,
+// o que esgotava as conexões do MySQL quando o Googlebot rastreava => erros 5xx).
 export const revalidate = 3600;
+
+// Lista vazia + revalidate = cada música é gerada na primeira visita e depois cacheada.
+export async function generateStaticParams() {
+  return [];
+}
 
 import Link from "next/link";
 import { cache } from "react";
+import { notFound } from "next/navigation";
 import { calcularPrevisaoViews } from "@/utils/predictions";
 import type { Metadata } from "next";
-import notfound from "./not-found";
 
 import {
   buscarMusicaPorId,
-  listarHistoricoPaginado,
-  contarHistorico,
-  buscarPrimeiroRegistroDoMes,
-  buscarHistoricoOntem,
-  buscarUltimos4Historicos
+  listarHistoricoCompleto,
+  buscarUltimaAtualizacao,
 } from "@/app/actions/searchMusic";
 
 import { SuavizarNumero } from "@/utils/math";
@@ -31,49 +35,45 @@ export async function generateMetadata({ params }: VideoPageProps): Promise<Meta
   const { id } = await params;
   const musica = await obterMusicaComCache(id);
 
-  if (!musica) return { title: "Music Not Found | MusicalStats" };
+  if (!musica) return { title: "Music Not Found | MusicalStats", robots: { index: false } };
 
   return {
     title: `${musica.titulo} Youtube Statistics | MusicalStats`,
-    description: ` ${musica.titulo} is currently with ${musica.likes} likes, ${musica.comentarios} comments and ${musica.views} views. `
+    description: `${musica.titulo} is currently with ${musica.likes} likes, ${musica.comentarios} comments and ${musica.views} views.`,
+    alternates: { canonical: `/video/${musica.id_video}` },
   };
 }
 
 interface VideoPageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string; }>;
 }
 
 /* ---------------- PAGE ---------------- */
-export default async function VideoPage({ params, searchParams }: VideoPageProps) {
+export default async function VideoPage({ params }: VideoPageProps) {
   const { id } = await params;
-  const paginaAtual = Number((await searchParams).page) || 1;
-  const registrosPorPagina = 12;
 
   /* 1. Dados base do vídeo */
   const musica = await obterMusicaComCache(id);
 
   if (!musica || !musica.url_video) {
-    return (notfound())
+    notFound(); // responde HTTP 404 de verdade (antes era 200 = "soft 404")
   }
 
-  /* 2. Queries paralelas */
-  const [
-    historicoOntem,
-    historicoPaginaAtual,
-    primeiroRegistroDoMes,
-    totalHistorico,
-  ] = await Promise.all([
-    buscarHistoricoOntem(id),
-    listarHistoricoPaginado(id, paginaAtual, registrosPorPagina),
-    buscarPrimeiroRegistroDoMes(id),
-    contarHistorico(id),
-    
+  /* 2. Uma única query de histórico (mais recente primeiro); o resto é derivado dela */
+  const [historicoCompleto, ultimaAtualizacaoGlobal] = await Promise.all([
+    listarHistoricoCompleto(id),
+    buscarUltimaAtualizacao(),
   ]);
 
-  const totalPaginas = Math.ceil(totalHistorico / registrosPorPagina);
+  const historicoOntem = historicoCompleto[1] ?? null;
+  const historicoRecente = historicoCompleto.slice(0, 12);
+  const historicos = historicoCompleto.slice(0, 4).reverse();
+  const historicoCrescente = [...historicoCompleto].reverse();
 
-  const historicos = await buscarUltimos4Historicos(id)
+  const agora = new Date();
+  const inicioDoMes = Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), 1);
+  const primeiroRegistroDoMes =
+    historicoCrescente.find((h) => new Date(h.capturado_em).getTime() >= inicioDoMes) ?? null;
 
   /* 3. Cálculos de Diferenças */
   const yesterdayViews = historicoOntem ? musica.views - historicoOntem.views : 0;
@@ -95,7 +95,7 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
     : "Unknown";
 
   const urlEmbedFinal = formatarLinkEmbed(musica.url_video, musica.id_video);
-  const previsaoViews = calcularPrevisaoViews(musica.views, historicoPaginaAtual);
+  const previsaoViews = calcularPrevisaoViews(musica.views, historicoRecente);
 
  const jsonLd = {
   "@context": "https://schema.org",
@@ -236,41 +236,14 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
         <p className="text-center text-sm text-white/40 mb-4">{previsaoViews.message}</p>
       )}
 
-      {/* HISTÓRICO PAGINADO */}
+      {/* HISTÓRICO PAGINADO (paginação no cliente, sem ?page= na URL) */}
       <div className="container mx-auto p-4">
-        <VideoHistoricList 
-          id_video={id} 
-          dados={historicoPaginaAtual} 
-          ultimaAtualizacao={musica.ultima_atualizacao} 
+        <VideoHistoricList
+          id_video={id}
+          dados={historicoCompleto}
+          ultimaAtualizacaoGlobal={ultimaAtualizacaoGlobal}
         />
       </div>
-
-      {/* PAGINAÇÃO */}
-      <div className="flex justify-center items-center gap-4 mt-4 mb-4">
-        {paginaAtual > 1 && (
-          <Link
-            href={`/video/${id}?page=${paginaAtual - 1}`}
-            className="px-4 py-2 bg-purple-500/15 rounded hover:bg-purple-500/20"
-          >
-            Previous
-          </Link>
-        )}
-
-        <span className="text-sm text-white/60">
-          Page {paginaAtual} of {totalPaginas}
-        </span>
-
-        {paginaAtual < totalPaginas && (
-          <Link
-            href={`/video/${id}?page=${paginaAtual + 1}`}
-            className="px-4 py-2 bg-purple-500/15 rounded hover:bg-purple-500/20"
-          >
-            Next
-          </Link>
-        )}
-      </div>
-
-        
 
         <div className="flex flex-col gap-4">
 
@@ -284,10 +257,7 @@ export default async function VideoPage({ params, searchParams }: VideoPageProps
       </div>
 
          <div className="flex flex-col gap-4">
-          <Charts
-            id_musica = {musica.id_video}
-            >
-          </Charts>
+          <Charts historico={historicoCrescente} />
             </div>
         
       {/* FOOTER */}

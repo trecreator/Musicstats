@@ -1,6 +1,5 @@
 'use client'; // Necessário para o useEffect funcionar no Next.js
 
-import { buscarUltimaAtualizacao } from "@/app/actions/searchMusic";
 import React, { useState } from "react";
 import { useEffect } from "react";
 
@@ -17,15 +16,22 @@ interface HistoricoItem {
 interface VideoHistoricListProps {
   id_video: string; 
   dados: HistoricoItem[];
-  ultimaAtualizacao?: string | Date | null;
+  ultimaAtualizacaoGlobal?: string | null;
 }
+
+const REGISTROS_POR_PAGINA = 12;
 
 export default function VideoHistoricList({
   id_video, // CORREÇÃO: Recebendo o id_video aqui
-  dados,
-  ultimaAtualizacao,
+  dados: todosDados,
+  ultimaAtualizacaoGlobal,
 }: VideoHistoricListProps) {
-  const [ultimaAtualizacaoGlobal, setUltimaAtualizacaoGlobal] = useState<string | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const totalPaginas = Math.max(1, Math.ceil(todosDados.length / REGISTROS_POR_PAGINA));
+  const inicio = (pagina - 1) * REGISTROS_POR_PAGINA;
+  // Pega 1 registro a mais para calcular o ganho da última linha da página
+  const dadosComProximo = todosDados.slice(inicio, inicio + REGISTROS_POR_PAGINA + 1);
+  const dados = dadosComProximo.slice(0, REGISTROS_POR_PAGINA);
   // CORREÇÃO: O fetch agora usa o id_video real recebido via propriedade
   useEffect(() => {
     if (!id_video) return;
@@ -39,9 +45,6 @@ export default function VideoHistoricList({
     }).catch((err) => console.error("Erro ao registrar visita:", err));
   }, [id_video]);
 
-    useEffect(() => {
-    buscarUltimaAtualizacao().then(setUltimaAtualizacaoGlobal);
-  }, []);
 
   if (!dados || dados.length === 0) {
     return (
@@ -81,7 +84,7 @@ export default function VideoHistoricList({
 
           <tbody>
             {dados.map((item, index) => {
-              const registroAnterior = dados[index + 1];
+              const registroAnterior = dadosComProximo[index + 1];
               const diferencaViews = registroAnterior ? item.views - registroAnterior.views : 0;
               const diferencaLikes = registroAnterior ? item.likes - registroAnterior.likes : 0;
               const diferencaComentarios = registroAnterior ? item.comentarios - registroAnterior.comentarios : 0;
@@ -120,6 +123,32 @@ export default function VideoHistoricList({
           </tbody>
         </table>
       </div>
+
+      {totalPaginas > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-4">
+          {pagina > 1 && (
+            <button
+              type="button"
+              onClick={() => setPagina(pagina - 1)}
+              className="px-4 py-2 bg-purple-500/15 rounded hover:bg-purple-500/20"
+            >
+              Previous
+            </button>
+          )}
+          <span className="text-sm text-white/60">
+            Page {pagina} of {totalPaginas}
+          </span>
+          {pagina < totalPaginas && (
+            <button
+              type="button"
+              onClick={() => setPagina(pagina + 1)}
+              className="px-4 py-2 bg-purple-500/15 rounded hover:bg-purple-500/20"
+            >
+              Next
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
