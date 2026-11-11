@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import mysql from "mysql2/promise";
+import { configDaDatabaseUrl } from "@/lib/dbUri";
 import https from "https";
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +9,7 @@ export const revalidate = 0;
 
 const deNuvem = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
 const poolConfig = process.env.DATABASE_URL
-  ? { uri: process.env.DATABASE_URL }
+  ? configDaDatabaseUrl(process.env.DATABASE_URL)
   : deNuvem 
     ? {
         host: process.env.DB_HOST,
@@ -178,6 +180,12 @@ export async function GET(request: NextRequest) {
     }
 
     await conexao.end();
+
+    if (totalAtualizado > 0) {
+      // Invalida o cache (ISR) das páginas para os números novos aparecerem já na próxima visita
+      revalidatePath("/video/[id]", "page");
+      revalidatePath("/TodayMostViewedList");
+    }
 
     if (totalAtualizado === 0) {
       return NextResponse.json({ success: false, error: "Nenhum resultado retornado pelos servidores do YouTube.", debug: validacaoEnv });

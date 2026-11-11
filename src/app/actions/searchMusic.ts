@@ -1,6 +1,7 @@
 'use server';
 
 import mysql from "mysql2/promise";
+import { configDaDatabaseUrl } from "@/lib/dbUri";
 import type { RowDataPacket } from "mysql2/promise";
 import type { MusicaRow } from "@/types/music";
 import type { Musica } from "@/types/music";
@@ -11,7 +12,7 @@ import { cache } from 'react';
 const deNuvem = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
 
 const poolConfig = process.env.DATABASE_URL
-  ? { uri: process.env.DATABASE_URL }
+  ? configDaDatabaseUrl(process.env.DATABASE_URL)
   : deNuvem 
     ? {
         host: process.env.DB_HOST,
