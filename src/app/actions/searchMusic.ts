@@ -1,41 +1,12 @@
 'use server';
 
-import mysql from "mysql2/promise";
-import { configDaDatabaseUrl } from "@/lib/dbUri";
+import { conexao } from "@/lib/db";
 import type { RowDataPacket } from "mysql2/promise";
 import type { MusicaRow } from "@/types/music";
 import type { Musica } from "@/types/music";
 import type { MusicaHistoricoRow } from "@/types/musicHistorico";
 import type { MusicaHistorico } from "@/types/musicHistorico";
 import { cache } from 'react';
-
-const deNuvem = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
-
-const poolConfig = process.env.DATABASE_URL
-  ? configDaDatabaseUrl(process.env.DATABASE_URL)
-  : deNuvem 
-    ? {
-        host: process.env.DB_HOST,
-        port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-        waitForConnections: true,
-        connectionLimit: 10,
-        queueLimit: 0,
-        ssl: { rejectUnauthorized: false }
-      }
-    : { host: "127.0.0.1" };
-
-const globalForMysql = globalThis as unknown as {
-  conexao: mysql.Pool | undefined;
-};
-
-const conexao = globalForMysql.conexao ?? mysql.createPool(poolConfig);
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForMysql.conexao = conexao;
-}
 
 // 1. BUSCAR MÚSICAS AVANÇADO
 export async function buscarMusicasAvancado(
@@ -128,36 +99,6 @@ export async function buscarHistoricoMusica(id_video: string): Promise<MusicaHis
     return rows[0];
   } finally {
     connection.release();
-  }
-}
-
-// 5. REGISTRAR VISITA (Otimizado: usa uma única conexão para todas as operações sequenciais)
-export async function registrarVisitaMusica(id_video: string, ip: string): Promise<void> {
-  if (!id_video || !ip) return;
-
-  const connection = await conexao.getConnection();
-  try {
-    const [rows] = await connection.query<any[]>(
-      `SELECT id FROM musicas_visitas_log 
-       WHERE id_video = ? AND ip_usuario = ? AND data_acesso = UTC_DATE() 
-       LIMIT 1`,
-      [id_video, ip]
-    );
-
-    if (rows.length > 0) return;
-
-    // Executa as escritas na mesma conexão dedicada
-    await connection.query(
-      `INSERT INTO musicas_visitas_log (id_video, ip_usuario, data_acesso) VALUES (?, ?, UTC_DATE())`,
-      [id_video, ip]
-    );
-
-    await connection.query(
-      `UPDATE musicas SET visits = visits + 1 WHERE id_video = ?`,
-      [id_video]
-    );
-  } finally {
-    connection.release(); // Libera as 3 operações de uma vez só
   }
 }
 

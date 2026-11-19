@@ -1,7 +1,6 @@
-'use client'; // Necessário para o useEffect funcionar no Next.js
+'use client';
 
 import React, { useState } from "react";
-import { useEffect } from "react";
 
 interface HistoricoItem {
   views: number;
@@ -12,9 +11,7 @@ interface HistoricoItem {
 
 
 
-// CORREÇÃO: Adicionado id_video na interface de propriedades
 interface VideoHistoricListProps {
-  id_video: string; 
   dados: HistoricoItem[];
   ultimaAtualizacaoGlobal?: string | null;
 }
@@ -22,7 +19,6 @@ interface VideoHistoricListProps {
 const REGISTROS_POR_PAGINA = 12;
 
 export default function VideoHistoricList({
-  id_video, // CORREÇÃO: Recebendo o id_video aqui
   dados: todosDados,
   ultimaAtualizacaoGlobal,
 }: VideoHistoricListProps) {
@@ -32,19 +28,6 @@ export default function VideoHistoricList({
   // Pega 1 registro a mais para calcular o ganho da última linha da página
   const dadosComProximo = todosDados.slice(inicio, inicio + REGISTROS_POR_PAGINA + 1);
   const dados = dadosComProximo.slice(0, REGISTROS_POR_PAGINA);
-  // CORREÇÃO: O fetch agora usa o id_video real recebido via propriedade
-  useEffect(() => {
-    if (!id_video) return;
-
-    fetch('/api/visita', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ id: id_video }),
-    }).catch((err) => console.error("Erro ao registrar visita:", err));
-  }, [id_video]);
-
 
   if (!dados || dados.length === 0) {
     return (

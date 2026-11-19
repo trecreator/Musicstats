@@ -20,6 +20,7 @@ import {
 } from "@/app/actions/searchMusic";
 
 import { SuavizarNumero } from "@/utils/math";
+import RegistrarVisita from "@/app/_components/video/RegistrarVisita";
 import VideoHistoricList from "@/app/_components/video/VideoHistoricList";
 import VideoMonthViews from "@/app/_components/video/VideoMonthViews";
 import ReachTimeCalculator from "./reachTimeCalculator";
@@ -238,8 +239,8 @@ export default async function VideoPage({ params }: VideoPageProps) {
 
       {/* HISTÓRICO PAGINADO (paginação no cliente, sem ?page= na URL) */}
       <div className="container mx-auto p-4">
+        <RegistrarVisita id={musica.id_video} />
         <VideoHistoricList
-          id_video={id}
           dados={historicoCompleto}
           ultimaAtualizacaoGlobal={ultimaAtualizacaoGlobal}
         />
